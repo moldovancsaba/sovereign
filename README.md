@@ -7,6 +7,7 @@ SentinelSquad is the product repository for the AI agentic unified chat, where m
 - GitHub: [moldovancsaba/sentinelsquad](https://github.com/moldovancsaba/sentinelsquad)
 - Local root: `/Users/moldovancsaba/Projects/sentinelsquad`
 - Product app: [`apps/sentinelsquad`](/Users/moldovancsaba/Projects/sentinelsquad/apps/sentinelsquad)
+- Product version: `1.0.0` (from [`VERSION`](/Users/moldovancsaba/Projects/sentinelsquad/VERSION))
 
 ## Structure
 
@@ -68,7 +69,9 @@ npm run dev
 
 - Direct local development uses port `3007`.
 - `docker-compose.yml` exposes the containerized app on `3577`.
-- The app-level launcher script is available at `apps/sentinelsquad/scripts/launcher/Launch SentinelSquad.command`.
+- The app-level launcher scripts are available at `apps/sentinelsquad/scripts/launcher/Launch SentinelSquad.command` and `apps/sentinelsquad/scripts/launcher/Open SentinelSquad Workspace.command`.
+- The macOS menubar app installer is available at `npm run menubar:install`.
+- The launchd installer/status scripts are available via `npm run service:install`, `npm run service:status`, and `npm run service:uninstall`.
 - The default local model preset is `Granite-4.0-H-1B`.
 - First authenticated launch bootstraps `@Controller`, `@Drafter`, `@Writer`, and `@Gwen` as local agents.
 - The launcher defaults to starting the `@Controller` worker so the squad has active execution coverage immediately.

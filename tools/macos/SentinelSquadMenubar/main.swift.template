@@ -1,0 +1,162 @@
+import AppKit
+import Foundation
+
+final class SentinelSquadMenubarApp: NSObject, NSApplicationDelegate {
+    private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    private let menu = NSMenu()
+
+    private let productItem = NSMenuItem(title: "SentinelSquad v__APP_VERSION__", action: nil, keyEquivalent: "")
+    private let appItem = NSMenuItem(title: "App: checking...", action: nil, keyEquivalent: "")
+    private let workerItem = NSMenuItem(title: "Worker: checking...", action: nil, keyEquivalent: "")
+    private let ollamaItem = NSMenuItem(title: "Ollama: checking...", action: nil, keyEquivalent: "")
+    private let launchdItem = NSMenuItem(title: "Launchd: checking...", action: nil, keyEquivalent: "")
+    private let activeAgentsItem = NSMenuItem(title: "Agents: checking...", action: nil, keyEquivalent: "")
+    private let detailsItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+    private let basicsHeaderItem = NSMenuItem(title: "--- Basics ---", action: nil, keyEquivalent: "")
+    private let advancedHeaderItem = NSMenuItem(title: "--- Advanced ---", action: nil, keyEquivalent: "")
+
+    private var timer: Timer?
+    private let repoRoot = "__REPO_ROOT__"
+    private let appPort = "3007"
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        configureMenuBarIcon()
+
+        productItem.isEnabled = false
+        appItem.isEnabled = false
+        workerItem.isEnabled = false
+        ollamaItem.isEnabled = false
+        launchdItem.isEnabled = false
+        activeAgentsItem.isEnabled = false
+        detailsItem.isEnabled = false
+        basicsHeaderItem.isEnabled = false
+        advancedHeaderItem.isEnabled = false
+
+        menu.addItem(productItem)
+        menu.addItem(appItem)
+        menu.addItem(workerItem)
+        menu.addItem(ollamaItem)
+        menu.addItem(launchdItem)
+        menu.addItem(activeAgentsItem)
+        menu.addItem(detailsItem)
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(basicsHeaderItem)
+        menu.addItem(item("Open UI /chat", #selector(openChat)))
+        menu.addItem(item("Open UI /agents", #selector(openAgents)))
+        menu.addItem(item("Open UI /nexus", #selector(openNexus)))
+        menu.addItem(item("Open Sign-In", #selector(openSignin)))
+        menu.addItem(item("Open Repository", #selector(openRepository)))
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(advancedHeaderItem)
+        menu.addItem(item("Install/Restart Services", #selector(installServices)))
+        menu.addItem(item("Check Service Status", #selector(checkServices)))
+        menu.addItem(item("Run Launcher", #selector(runLauncher)))
+        menu.addItem(item("Open Logs", #selector(openLogs)))
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(item("Quit", #selector(quitApp)))
+
+        statusItem.menu = menu
+        refreshHealth()
+        timer = Timer.scheduledTimer(timeInterval: 5.0, target: self, selector: #selector(refreshHealth), userInfo: nil, repeats: true)
+    }
+
+    private func configureMenuBarIcon() {
+        guard let button = statusItem.button else { return }
+        if let image = NSImage(systemSymbolName: "bubble.left.and.bubble.right.fill", accessibilityDescription: "SentinelSquad") {
+            image.isTemplate = true
+            button.image = image
+            button.imagePosition = .imageOnly
+            return
+        }
+        button.title = "S"
+    }
+
+    private func item(_ title: String, _ action: Selector) -> NSMenuItem {
+        let m = NSMenuItem(title: title, action: action, keyEquivalent: "")
+        m.target = self
+        return m
+    }
+
+    private func portOpen(_ port: String) -> Bool {
+        let output = MenubarCore.runShellCapture("/usr/sbin/lsof -t -iTCP:\(port) -sTCP:LISTEN 2>/dev/null | head -1", workingDirectory: repoRoot)
+        return !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func boolTitle(_ label: String, _ ok: Bool) -> String {
+        return "\(label): \(ok ? "up" : "down")"
+    }
+
+    private func launchdLoaded(_ label: String) -> Bool {
+        let output = MenubarCore.runShellCapture("launchctl print gui/$(id -u)/\(label) >/dev/null 2>&1; echo $?", workingDirectory: repoRoot)
+        return output.trimmingCharacters(in: .whitespacesAndNewlines) == "0"
+    }
+
+    @objc private func refreshHealth() {
+        let appUp = portOpen(appPort)
+        let ollamaUp = portOpen("11434")
+        let workerOut = MenubarCore.runShellCapture("ps -eo args= | grep 'scripts/worker.js' | grep -v grep | wc -l | tr -d ' '", workingDirectory: repoRoot)
+        let workerCount = Int(workerOut.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
+        let launchdUp = launchdLoaded("com.sentinelsquad.app")
+
+        let activeOut = MenubarCore.runShellCapture("if [ -f apps/sentinelsquad/.sentinelsquad/settings.json ]; then grep -o 'Granite-4.0-H-1B' apps/sentinelsquad/.sentinelsquad/settings.json | wc -l | tr -d ' '; else echo 0; fi", workingDirectory: repoRoot)
+        let graniteRefs = Int(activeOut.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
+
+        appItem.title = boolTitle("App", appUp)
+        workerItem.title = "Worker: \(workerCount > 0 ? "\(workerCount) running" : "down")"
+        ollamaItem.title = boolTitle("Ollama", ollamaUp)
+        launchdItem.title = "Launchd: \(launchdUp ? "loaded" : "manual")"
+        activeAgentsItem.title = "Granite refs: \(graniteRefs)"
+        detailsItem.title = "UI: http://127.0.0.1:\(appPort)/chat"
+
+        if let button = statusItem.button {
+            button.contentTintColor = appUp ? nil : .systemRed
+        }
+    }
+
+    @objc private func openChat() {
+        NSWorkspace.shared.open(URL(string: "http://127.0.0.1:\(appPort)/chat")!)
+    }
+
+    @objc private func openAgents() {
+        NSWorkspace.shared.open(URL(string: "http://127.0.0.1:\(appPort)/agents")!)
+    }
+
+    @objc private func openNexus() {
+        NSWorkspace.shared.open(URL(string: "http://127.0.0.1:\(appPort)/nexus")!)
+    }
+
+    @objc private func openSignin() {
+        NSWorkspace.shared.open(URL(string: "http://127.0.0.1:\(appPort)/signin")!)
+    }
+
+    @objc private func openRepository() {
+        NSWorkspace.shared.open(URL(fileURLWithPath: repoRoot))
+    }
+
+    @objc private func installServices() {
+        MenubarCore.runShell("bash apps/sentinelsquad/scripts/launcher/sentinelsquad-daemon-install.sh", workingDirectory: repoRoot)
+    }
+
+    @objc private func checkServices() {
+        MenubarCore.runShell("bash apps/sentinelsquad/scripts/launcher/sentinelsquad-daemon-status.sh | tee /tmp/sentinelsquad-menubar-status.txt", workingDirectory: repoRoot)
+        NSWorkspace.shared.open(URL(fileURLWithPath: "/tmp/sentinelsquad-menubar-status.txt"))
+    }
+
+    @objc private func runLauncher() {
+        MenubarCore.runShell("bash apps/sentinelsquad/scripts/launcher/Launch\\ SentinelSquad.command", workingDirectory: repoRoot)
+    }
+
+    @objc private func openLogs() {
+        NSWorkspace.shared.open(URL(fileURLWithPath: "\(repoRoot)/apps/sentinelsquad/.sentinelsquad/daemon-logs"))
+    }
+
+    @objc private func quitApp() {
+        NSApplication.shared.terminate(nil)
+    }
+}
+
+let app = NSApplication.shared
+let delegate = SentinelSquadMenubarApp()
+app.delegate = delegate
+app.setActivationPolicy(.accessory)
+app.run()

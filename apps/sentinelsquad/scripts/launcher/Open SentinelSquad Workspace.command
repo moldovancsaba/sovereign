@@ -23,7 +23,6 @@ if [[ -z "$REPO_ROOT" || ! -d "$REPO_ROOT" ]]; then
 fi
 
 OPEN_BIN="/usr/bin/open"
-OSASCRIPT_BIN="/usr/bin/osascript"
 CODIUM_BIN="${CODIUM_BIN:-$(command -v codium || true)}"
 PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || true)}"
 
@@ -36,7 +35,7 @@ for bin in "$OPEN_BIN" "$PYTHON_BIN"; do
 done
 
 echo "=========================================="
-echo "      NEXUS ONE-CLICK LAUNCHER"
+echo "   SENTINELSQUAD WORKSPACE LAUNCHER"
 echo "=========================================="
 echo "SentinelSquad: $SENTINELSQUAD_ROOT"
 echo "Repo:    $REPO_ROOT"
@@ -52,7 +51,7 @@ fi
 
 # Start or restart background daemons so services survive terminal closure.
 echo "Restarting managed background services..."
-bash "scripts/launcher/nexus-daemon-install.sh"
+bash "scripts/launcher/sentinelsquad-daemon-install.sh"
 
 # Open VSCodium workspace
 if [[ -n "$CODIUM_BIN" && -x "$CODIUM_BIN" ]]; then
@@ -66,10 +65,10 @@ fi
 "$OPEN_BIN" "http://127.0.0.1:3007/chat" >/dev/null 2>&1 || true
 "$OPEN_BIN" "http://127.0.0.1:3007/nexus" >/dev/null 2>&1 || true
 
-echo "Nexus stack launch requested."
+echo "SentinelSquad workspace launch requested."
 echo "1) LaunchAgents restarted: Ollama + SentinelSquad"
 echo "2) VSCodium opened on repo"
-echo "3) Chat + Nexus pages opened"
+echo "3) Chat + squad operations pages opened"
 echo ""
 echo "In Roo chat, trigger with plain text (MCP is on-demand):"
 echo "@Controller run cell: build a secure python cli tool with tests"

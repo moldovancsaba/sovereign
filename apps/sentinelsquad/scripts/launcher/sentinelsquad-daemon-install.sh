@@ -20,8 +20,8 @@ if [[ -z "$NPM_BIN" || -z "$OLLAMA_BIN" ]]; then
   exit 1
 fi
 
-PLIST_OLLAMA="$LAUNCH_AGENTS_DIR/com.mvpfactory.ollama.plist"
-PLIST_SENTINELSQUAD="$LAUNCH_AGENTS_DIR/com.mvpfactory.sentinelsquad.plist"
+PLIST_OLLAMA="$LAUNCH_AGENTS_DIR/com.sentinelsquad.ollama.plist"
+PLIST_SENTINELSQUAD="$LAUNCH_AGENTS_DIR/com.sentinelsquad.app.plist"
 PLIST_MCP_LEGACY="$LAUNCH_AGENTS_DIR/com.mvpfactory.nexus-mcp.plist"
 
 cat > "$PLIST_OLLAMA" <<PLIST
@@ -30,7 +30,7 @@ cat > "$PLIST_OLLAMA" <<PLIST
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.mvpfactory.ollama</string>
+  <string>com.sentinelsquad.ollama</string>
   <key>ProgramArguments</key>
   <array>
     <string>$SCRIPT_DIR/ollama-daemon.sh</string>
@@ -54,7 +54,7 @@ cat > "$PLIST_SENTINELSQUAD" <<PLIST
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.mvpfactory.sentinelsquad</string>
+  <string>com.sentinelsquad.app</string>
   <key>ProgramArguments</key>
   <array>
     <string>$SCRIPT_DIR/sentinelsquad-daemon.sh</string>
@@ -87,7 +87,7 @@ if [[ -x "$LSOF_BIN" ]]; then
   fi
 fi
 
-for label in com.mvpfactory.ollama com.mvpfactory.sentinelsquad com.mvpfactory.nexus-mcp; do
+for label in com.sentinelsquad.ollama com.sentinelsquad.app com.mvpfactory.ollama com.mvpfactory.sentinelsquad com.mvpfactory.nexus-mcp; do
   launchctl bootout "gui/$UID/$label" >/dev/null 2>&1 || true
 done
 rm -f "$PLIST_MCP_LEGACY"
@@ -109,14 +109,14 @@ bootstrap_label() {
   return 1
 }
 
-bootstrap_label "com.mvpfactory.ollama" "$PLIST_OLLAMA"
-bootstrap_label "com.mvpfactory.sentinelsquad" "$PLIST_SENTINELSQUAD"
+bootstrap_label "com.sentinelsquad.ollama" "$PLIST_OLLAMA"
+bootstrap_label "com.sentinelsquad.app" "$PLIST_SENTINELSQUAD"
 
-launchctl enable "gui/$UID/com.mvpfactory.ollama"
-launchctl enable "gui/$UID/com.mvpfactory.sentinelsquad"
+launchctl enable "gui/$UID/com.sentinelsquad.ollama"
+launchctl enable "gui/$UID/com.sentinelsquad.app"
 
-launchctl kickstart -k "gui/$UID/com.mvpfactory.ollama"
-launchctl kickstart -k "gui/$UID/com.mvpfactory.sentinelsquad"
+launchctl kickstart -k "gui/$UID/com.sentinelsquad.ollama"
+launchctl kickstart -k "gui/$UID/com.sentinelsquad.app"
 
 wait_for_health() {
   local url="$1"
@@ -141,7 +141,7 @@ if ! wait_for_health "${SENTINELSQUAD_APP_URL%/}${SENTINELSQUAD_SIGNIN_PATH}" 60
 fi
 
 echo "Installed and started LaunchAgents:"
-echo "- com.mvpfactory.ollama"
-echo "- com.mvpfactory.sentinelsquad"
+echo "- com.sentinelsquad.ollama"
+echo "- com.sentinelsquad.app"
 echo "Logs: $LOG_DIR"
 echo "Note: MCP bridge is on-demand from Roo MCP settings (no launchd daemon)."

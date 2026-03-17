@@ -3,12 +3,12 @@ set -euo pipefail
 
 LAUNCH_AGENTS_DIR="$HOME/Library/LaunchAgents"
 PLISTS=(
-  "$LAUNCH_AGENTS_DIR/com.mvpfactory.ollama.plist"
-  "$LAUNCH_AGENTS_DIR/com.mvpfactory.sentinelsquad.plist"
+  "$LAUNCH_AGENTS_DIR/com.sentinelsquad.ollama.plist"
+  "$LAUNCH_AGENTS_DIR/com.sentinelsquad.app.plist"
 )
 LABELS=(
-  "com.mvpfactory.ollama"
-  "com.mvpfactory.sentinelsquad"
+  "com.sentinelsquad.ollama"
+  "com.sentinelsquad.app"
 )
 
 for label in "${LABELS[@]}"; do
@@ -26,5 +26,6 @@ done
 launchctl bootout "gui/$UID/com.mvpfactory.nexus-mcp" >/dev/null 2>&1 || true
 launchctl disable "gui/$UID/com.mvpfactory.nexus-mcp" >/dev/null 2>&1 || true
 rm -f "$LAUNCH_AGENTS_DIR/com.mvpfactory.nexus-mcp.plist"
+rm -f "$LAUNCH_AGENTS_DIR/com.mvpfactory.ollama.plist" "$LAUNCH_AGENTS_DIR/com.mvpfactory.sentinelsquad.plist"
 
-echo "Nexus LaunchAgents uninstalled."
+echo "SentinelSquad LaunchAgents uninstalled."

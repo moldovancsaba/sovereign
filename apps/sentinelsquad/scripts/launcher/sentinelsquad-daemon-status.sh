@@ -2,8 +2,8 @@
 set -euo pipefail
 
 LABELS=(
-  "com.mvpfactory.ollama"
-  "com.mvpfactory.sentinelsquad"
+  "com.sentinelsquad.ollama"
+  "com.sentinelsquad.app"
 )
 
 for label in "${LABELS[@]}"; do
@@ -22,5 +22,5 @@ for label in "${LABELS[@]}"; do
 done
 
 echo "=================================="
-echo "MCP bridge"
-echo "status: on-demand via Roo MCP settings (not a launchd daemon)"
+echo "SentinelSquad services"
+echo "status: auxiliary MCP bridge remains on-demand via Roo MCP settings"

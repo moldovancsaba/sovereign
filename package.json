@@ -1,6 +1,7 @@
 {
   "name": "sentinelsquad-repo",
   "private": true,
+  "version": "1.0.0",
   "description": "SentinelSquad product repository",
   "workspaces": [
     "apps/sentinelsquad"
@@ -13,6 +14,10 @@
     "verify": "npm run typecheck && npm run build",
     "start": "npm --prefix apps/sentinelsquad run start",
     "worker": "npm --prefix apps/sentinelsquad run worker",
+    "menubar:install": "bash tools/macos/SentinelSquadMenubar/install_SentinelSquadMenubar.sh",
+    "service:install": "bash apps/sentinelsquad/scripts/launcher/sentinelsquad-daemon-install.sh",
+    "service:status": "bash apps/sentinelsquad/scripts/launcher/sentinelsquad-daemon-status.sh",
+    "service:uninstall": "bash apps/sentinelsquad/scripts/launcher/sentinelsquad-daemon-uninstall.sh",
     "prisma:generate": "npm --prefix apps/sentinelsquad run prisma:generate",
     "prisma:migrate": "npm --prefix apps/sentinelsquad run prisma:migrate",
     "db:up": "docker compose up -d sentinelsquad-db",

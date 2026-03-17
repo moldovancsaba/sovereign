@@ -2,21 +2,21 @@
 
 ## First time (one click)
 Run:
-- `~/Desktop/Nexus Install Daemon.command`
+- `npm run service:install`
 
 This installs persistent background services (launchd):
-- Ollama (`com.mvpfactory.ollama`)
-- SentinelSquad (`com.mvpfactory.sentinelsquad`)
-- Nexus MCP bridge (`com.mvpfactory.nexus-mcp`)
+- Ollama (`com.sentinelsquad.ollama`)
+- SentinelSquad (`com.sentinelsquad.app`)
+- MCP bridge remains on-demand from Roo settings
 
 ## Daily use (one click)
 Run:
-- `~/Desktop/Open Nexus Workspace.command`
+- `apps/sentinelsquad/scripts/launcher/Open SentinelSquad Workspace.command`
 
 This opens:
 - VSCodium on repo
 - SentinelSquad chat (`/chat`)
-- SentinelSquad nexus panel (`/nexus`)
+- SentinelSquad operations panel (`/nexus`)
 
 ## In Roo chat
 Use plain text:
@@ -34,4 +34,4 @@ Primary interaction stays in Roo chat.
 
 ## Uninstall
 Run:
-- `~/Desktop/Nexus Uninstall Daemon.command`
+- `npm run service:uninstall`
