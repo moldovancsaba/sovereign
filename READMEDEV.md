@@ -1,150 +1,106 @@
 # READMEDEV
 
-This file is the developer and agent operating guide for SentinelSquad.
-
-Read this together with:
-
-- [docs/WIKI.md](docs/WIKI.md)
-- [docs/PROJECT_MANAGEMENT.md](docs/PROJECT_MANAGEMENT.md)
-- [docs/PROJECT_REPOSITORIES.md](docs/PROJECT_REPOSITORIES.md)
-- [docs/AGENT_PROMPTS.md](docs/AGENT_PROMPTS.md)
+This file is the developer operating guide for the `{sentinelsquad}` product repository.
 
 ## What This Repository Is
 
-This repository is the shared project-management and knowledge repository for the full portfolio.
+This repository is the product codebase for `{sentinelsquad}`.
 
-It owns:
+It is not the `mvp-factory-control` repository.
 
-- delivery issues
-- project-board operating rules
-- global prompts and standards
-- global documentation and shared knowledge
+Use this repository for:
 
-Managed projects:
+- product implementation
+- product architecture
+- operator docs
+- contributor docs
+- local runtime and desktop-launch work
 
-- `amanoba`
-- `cardmass`
-- `hatori`
-- `kormanyvalto`
-- `launchmass`
-- `messmass`
-- `narimato`
-- `reply`
-- `sentinelsquad`
-- `sso`
-
-It does not replace product repositories.
-
-If the task is product implementation, the usual path is:
-
-1. read the issue and board state here
-2. identify the target product repository
-3. switch to that product repository
-4. implement there
-5. return evidence and update board state here
+The GitHub project board in `mvp-factory-control` remains the delivery SSOT, but this repo is the engineering truth for `{sentinelsquad}` implementation details.
 
 ## Required Reading Order
 
-When starting work:
+1. [README.md](README.md)
+2. [CONTRIBUTING.md](CONTRIBUTING.md)
+3. [docs/WIKI.md](docs/WIKI.md)
+4. [docs/architecture/0001-theia-desktop-foundation.md](docs/architecture/0001-theia-desktop-foundation.md)
+5. [docs/architecture/0002-rock-solid-open-source-hardening.md](docs/architecture/0002-rock-solid-open-source-hardening.md)
+6. [docs/SENTINELSQUAD_DELIVERY_ROADMAP.md](docs/SENTINELSQUAD_DELIVERY_ROADMAP.md)
 
-1. [docs/WIKI.md](docs/WIKI.md)
-2. [docs/PROJECT_MANAGEMENT.md](docs/PROJECT_MANAGEMENT.md)
-3. [docs/PROJECT_REPOSITORIES.md](docs/PROJECT_REPOSITORIES.md)
-4. the relevant product page under `docs/projects/`
-5. [docs/CODING_STANDARDS.md](docs/CODING_STANDARDS.md)
-6. [docs/UI_UX_STANDARDS.md](docs/UI_UX_STANDARDS.md)
+## Architecture Truth
 
-## Agent Prompts
+The recommended delivery stack is:
 
-The prompt library lives in [docs/AGENT_PROMPTS.md](docs/AGENT_PROMPTS.md).
+- Eclipse Theia Desktop
+- Electron
+- TypeScript
+- Node.js
+- PostgreSQL
+- Prisma
+- `pgvector`
+- Ollama
+- MLX
+- launchd
+- custom `{sentinelsquad}` orchestration, memory, and tool policy layers
 
-It includes:
+GitHub is for source hosting and collaboration. It is not required for the local runtime path.
 
-- default prompt for operating in this repository
-- prompt for product-repo implementation work
-- prompt for board-management work
-- prompt for documentation maintenance
+## Current Implementation Truth
 
-## Board Discipline
+Do not treat the target stack as fully shipped.
 
-Every delivery task should be represented by:
+Implemented baseline:
 
-- an issue in this repository
-- a GitHub Project card on the board
+- Next.js app is still the primary product UI
+- native macOS wrapper is the primary packaged launch path
+- Ollama-first runtime is real
+- managed worker and launchd path are real
+- unified multi-agent chat is real
+- project sessions and thread events are real
+- durable project memory is at foundation stage only
 
-Before implementation:
+Target architecture not yet fully shipped:
 
-- confirm the issue exists
-- confirm the product field is correct
-- confirm the status is correct
-- confirm acceptance criteria are clear
+- Theia as the primary shell
+- MLX as a first-class runtime path
+- OpenClaw adapter
+- `pgvector` retrieval and curated memory workflows
 
-During implementation:
+## Developer Flow
 
-- keep the board current
-- add evidence to the issue
-- update status when the state changes
+1. Start DB.
+2. Prepare `.env`.
+3. Install dependencies and run Prisma.
+4. Start the local app.
+5. Verify a fresh `@Controller` task in chat if your change affects runtime behavior.
 
-Detailed rules: [docs/PROJECT_MANAGEMENT.md](docs/PROJECT_MANAGEMENT.md)
-
-## Product Repositories
-
-This repository should document product repositories, not absorb them.
-
-Use [docs/PROJECT_REPOSITORIES.md](docs/PROJECT_REPOSITORIES.md) to determine:
-
-- which repo to open
-- what belongs there
-- what belongs here
-- how agents should move between the central repo and a product repo
-
-Use the product pages under `docs/projects/` for repository-specific navigation.
-
-## Standards
-
-Engineering standards:
-
-- [docs/CODING_STANDARDS.md](docs/CODING_STANDARDS.md)
-
-UI/UX standards:
-
-- [docs/UI_UX_STANDARDS.md](docs/UI_UX_STANDARDS.md)
-
-Core non-negotiables:
-
-- no hardcoded product data when configuration or data modeling is appropriate
-- no baked-in styling that prevents reuse or theming
-- no undocumented workflow changes
-- no board-bypass delivery work
-- no cross-repo ambiguity about where code belongs
-
-## Documentation Rules
-
-When you update shared process, standards, prompts, or product navigation:
-
-- update the relevant Markdown docs in this repository
-- keep [docs/WIKI.md](docs/WIKI.md) current
-- keep README and READMEDEV aligned with the wiki
-
-When you update product-specific implementation:
-
-- update docs in the product repository first
-- only add or update content here if it affects cross-project behavior or shared standards
-
-## Build and Runtime
-
-Build and run instructions are maintained in:
+Canonical commands live in:
 
 - [docs/BUILD_AND_RUN.md](docs/BUILD_AND_RUN.md)
+- [docs/SETUP.md](docs/SETUP.md)
 
-## Suggested Operating Loop for Agents
+## Documentation Rule
 
-1. Read the issue.
-2. Check the board card.
-3. Read the relevant product page.
-4. Decide whether work belongs here or in a product repo.
-5. Implement in the correct repository.
-6. Validate.
-7. Add evidence to the issue.
-8. Update board status.
-9. Update shared docs here if global behavior changed.
+If you change:
+
+- architecture
+- startup flow
+- runtime provider behavior
+- memory behavior
+- desktop app launch behavior
+- operator workflow
+
+then update the relevant docs in the same change.
+
+Use these labels in docs when needed:
+
+- `Implemented now`
+- `Partially implemented`
+- `Target architecture`
+
+## Boundaries
+
+- Do not reintroduce GitHub board assumptions into local runtime surfaces.
+- Do not treat browser-first design as the default path.
+- Do not couple orchestration logic directly to a provider-specific API if a provider abstraction is expected.
+- Do not hide startup truth inside scripts without matching docs.

@@ -45,11 +45,5 @@ PLIST
 
 chmod +x "$BIN_DIR/${APP_NAME}"
 
-osascript -e "tell application \"System Events\"
-  if not (exists login item \"${APP_NAME}\") then
-    make login item at end with properties {path:\"${APP_DIR}\", hidden:false}
-  end if
-end tell" >/dev/null 2>&1 || true
-
 echo "Installed: $APP_DIR (version ${APP_VERSION})"
 echo "Run: open \"$APP_DIR\""

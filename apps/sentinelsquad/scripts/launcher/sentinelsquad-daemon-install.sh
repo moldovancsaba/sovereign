@@ -6,22 +6,26 @@ SENTINELSQUAD_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 LAUNCH_AGENTS_DIR="$HOME/Library/LaunchAgents"
 LOG_DIR="$SENTINELSQUAD_ROOT/.sentinelsquad/daemon-logs"
 mkdir -p "$LAUNCH_AGENTS_DIR" "$LOG_DIR"
+chmod +x "$SCRIPT_DIR/sentinelsquad-daemon.sh" "$SCRIPT_DIR/ollama-daemon.sh" "$SCRIPT_DIR/sentinelsquad-worker-daemon.sh"
 
 NPM_BIN="${NPM_BIN:-$(command -v npm || true)}"
+NODE_BIN="${NODE_BIN:-$(command -v node || true)}"
 OLLAMA_BIN="${OLLAMA_BIN:-$(command -v ollama || true)}"
 LSOF_BIN="/usr/sbin/lsof"
 CURL_BIN="/usr/bin/curl"
+PKILL_BIN="/usr/bin/pkill"
 SENTINELSQUAD_APP_PORT="${SENTINELSQUAD_APP_PORT:-3007}"
 SENTINELSQUAD_APP_URL="${SENTINELSQUAD_APP_URL:-http://127.0.0.1:${SENTINELSQUAD_APP_PORT}}"
 SENTINELSQUAD_SIGNIN_PATH="${SENTINELSQUAD_SIGNIN_PATH:-/signin}"
 
-if [[ -z "$NPM_BIN" || -z "$OLLAMA_BIN" ]]; then
-  echo "Missing required binary. npm=$NPM_BIN ollama=$OLLAMA_BIN"
+if [[ -z "$NPM_BIN" || -z "$NODE_BIN" || -z "$OLLAMA_BIN" ]]; then
+  echo "Missing required binary. npm=$NPM_BIN node=$NODE_BIN ollama=$OLLAMA_BIN"
   exit 1
 fi
 
 PLIST_OLLAMA="$LAUNCH_AGENTS_DIR/com.sentinelsquad.ollama.plist"
 PLIST_SENTINELSQUAD="$LAUNCH_AGENTS_DIR/com.sentinelsquad.app.plist"
+PLIST_WORKER="$LAUNCH_AGENTS_DIR/com.sentinelsquad.worker.plist"
 PLIST_MCP_LEGACY="$LAUNCH_AGENTS_DIR/com.mvpfactory.nexus-mcp.plist"
 
 cat > "$PLIST_OLLAMA" <<PLIST
@@ -44,6 +48,33 @@ cat > "$PLIST_OLLAMA" <<PLIST
   <key>KeepAlive</key><true/>
   <key>StandardOutPath</key><string>$LOG_DIR/ollama.out.log</string>
   <key>StandardErrorPath</key><string>$LOG_DIR/ollama.err.log</string>
+</dict>
+</plist>
+PLIST
+
+cat > "$PLIST_WORKER" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.sentinelsquad.worker</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>$SCRIPT_DIR/sentinelsquad-worker-daemon.sh</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>SENTINELSQUAD_ROOT</key><string>$SENTINELSQUAD_ROOT</string>
+    <key>NODE_BIN</key><string>$NODE_BIN</string>
+    <key>SENTINELSQUAD_WORKER_AGENT_KEY</key><string>${SENTINELSQUAD_WORKER_AGENT_KEY:-Controller}</string>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+  <key>WorkingDirectory</key><string>$SENTINELSQUAD_ROOT</string>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>$LOG_DIR/worker.out.log</string>
+  <key>StandardErrorPath</key><string>$LOG_DIR/worker.err.log</string>
 </dict>
 </plist>
 PLIST
@@ -87,7 +118,13 @@ if [[ -x "$LSOF_BIN" ]]; then
   fi
 fi
 
-for label in com.sentinelsquad.ollama com.sentinelsquad.app com.mvpfactory.ollama com.mvpfactory.sentinelsquad com.mvpfactory.nexus-mcp; do
+# Clear stale manual workers before launchd takes ownership of the controller worker.
+if [[ -x "$PKILL_BIN" ]]; then
+  "$PKILL_BIN" -f "${SENTINELSQUAD_ROOT}/scripts/worker.js" >/dev/null 2>&1 || true
+  sleep 1
+fi
+
+for label in com.sentinelsquad.ollama com.sentinelsquad.app com.sentinelsquad.worker com.mvpfactory.ollama com.mvpfactory.sentinelsquad com.mvpfactory.nexus-mcp; do
   launchctl bootout "gui/$UID/$label" >/dev/null 2>&1 || true
 done
 rm -f "$PLIST_MCP_LEGACY"
@@ -111,12 +148,15 @@ bootstrap_label() {
 
 bootstrap_label "com.sentinelsquad.ollama" "$PLIST_OLLAMA"
 bootstrap_label "com.sentinelsquad.app" "$PLIST_SENTINELSQUAD"
+bootstrap_label "com.sentinelsquad.worker" "$PLIST_WORKER"
 
 launchctl enable "gui/$UID/com.sentinelsquad.ollama"
 launchctl enable "gui/$UID/com.sentinelsquad.app"
+launchctl enable "gui/$UID/com.sentinelsquad.worker"
 
 launchctl kickstart -k "gui/$UID/com.sentinelsquad.ollama"
 launchctl kickstart -k "gui/$UID/com.sentinelsquad.app"
+launchctl kickstart -k "gui/$UID/com.sentinelsquad.worker"
 
 wait_for_health() {
   local url="$1"
@@ -143,5 +183,6 @@ fi
 echo "Installed and started LaunchAgents:"
 echo "- com.sentinelsquad.ollama"
 echo "- com.sentinelsquad.app"
+echo "- com.sentinelsquad.worker"
 echo "Logs: $LOG_DIR"
 echo "Note: MCP bridge is on-demand from Roo MCP settings (no launchd daemon)."

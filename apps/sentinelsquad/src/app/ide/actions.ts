@@ -13,6 +13,8 @@ import {
 import { enqueueTask } from "@/lib/tasks";
 import { createMessage, getOrCreateThread } from "@/lib/chat";
 import { prisma } from "@/lib/prisma";
+import { archiveProjectSession, getOrCreateProjectSession } from "@/lib/project-sessions";
+import { createThreadEvent } from "@/lib/thread-events";
 
 export async function ideListAction(formData: FormData) {
   const session = await requireSession();
@@ -61,6 +63,56 @@ export async function ideGitDiffAction(formData: FormData) {
   return await getIdeGitDiff(relPath, cwdRelPath);
 }
 
+export async function ideOpenProjectSessionAction(formData: FormData) {
+  const session = await requireSession();
+  if (!session) throw new Error("Unauthorized");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const userId = (session.user as any).id as string | undefined;
+
+  const relPath = String(formData.get("relPath") || "").trim();
+  const displayName = String(formData.get("displayName") || "").trim();
+
+  const projectSession = await getOrCreateProjectSession({
+    relPath,
+    displayName,
+    createdById: userId ?? null,
+    metadata: {
+      source: "ide",
+      openedFrom: relPath || "."
+    }
+  });
+  const globalThread = await getOrCreateThread({
+    kind: "GLOBAL",
+    ref: "main",
+    title: "Global",
+    createdById: userId ?? null
+  });
+  await createThreadEvent({
+    threadId: globalThread.id,
+    kind: "PROJECT_SESSION_OPENED",
+    payload: {
+      projectSessionId: projectSession.id,
+      relPath: projectSession.relPath,
+      displayName: projectSession.displayName,
+      source: "ide"
+    }
+  });
+
+  revalidatePath("/ide");
+  revalidatePath("/chat");
+  return projectSession;
+}
+
+export async function ideArchiveProjectSessionAction(formData: FormData) {
+  const session = await requireSession();
+  if (!session) throw new Error("Unauthorized");
+  const sessionId = String(formData.get("sessionId") || "").trim();
+  if (!sessionId) throw new Error("sessionId is required.");
+  await archiveProjectSession(sessionId);
+  revalidatePath("/ide");
+  return { ok: true };
+}
+
 export async function ideHandoffAction(formData: FormData) {
   const session = await requireSession();
   if (!session) throw new Error("Unauthorized");
@@ -93,6 +145,14 @@ export async function ideHandoffAction(formData: FormData) {
     title: "Global",
     createdById: userId ?? null
   });
+  const projectSession = await getOrCreateProjectSession({
+    relPath: cwdRelPath,
+    createdById: userId ?? null,
+    metadata: {
+      source: "ide_handoff",
+      selectedFile: relPath
+    }
+  });
 
   const title = `IDE handoff: ${relPath}`;
   const task = await enqueueTask({
@@ -105,7 +165,10 @@ export async function ideHandoffAction(formData: FormData) {
       kind: "ide_handoff",
       relPath,
       cwdRelPath,
-      context
+      context,
+      projectSessionId: projectSession.id,
+      projectSessionRelPath: projectSession.relPath,
+      projectSessionDisplayName: projectSession.displayName
     }
   });
 
@@ -117,11 +180,13 @@ export async function ideHandoffAction(formData: FormData) {
       task.status === "MANUAL_REQUIRED"
         ? `IDE handoff pending manual step for @${agent.key}: ${title}`
         : `IDE handoff queued for @${agent.key}: ${title}`,
-    meta: {
+      meta: {
       kind: "ide_handoff_enqueued",
       agentKey: agent.key,
       taskId: task.id,
-      relPath
+      relPath,
+      projectSessionId: projectSession.id,
+      projectSessionRelPath: projectSession.relPath
     }
   });
 

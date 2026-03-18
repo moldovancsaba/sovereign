@@ -1,6 +1,6 @@
 {
   "name": "sentinelsquad",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "SentinelSquad (local-first control plane)",
   "scripts": {
@@ -11,6 +11,7 @@
     "e2e:sentinelsquad": "node scripts/e2e/sentinelsquad-postmvp.e2e.js",
     "e2e:provenance": "node scripts/e2e/sentinelsquad-provenance-identity.e2e.js",
     "e2e:filesystem-safety": "node scripts/e2e/sentinelsquad-filesystem-safety.e2e.js",
+    "e2e:strict-role-policy": "node scripts/e2e/sentinelsquad-strict-role-policy.e2e.js",
     "e2e:dlp-guardrail": "node scripts/e2e/sentinelsquad-dlp-guardrail.e2e.js",
     "e2e:security-policy": "node scripts/e2e/sentinelsquad-security-policy-baseline.e2e.js",
     "e2e:recovery-readiness": "node scripts/e2e/sentinelsquad-recovery-readiness.e2e.js",
@@ -20,6 +21,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "worker": "node scripts/worker.js",
+    "runtime:doctor": "node scripts/launcher/runtime-doctor.js",
     "nexus:bootstrap": "bash scripts/nexus/bootstrap.sh",
     "nexus:run": "python3 scripts/nexus/orchestrate.py --task \"Build a secure model benchmark tool\"",
     "nexus:mcp": "python3 scripts/nexus/mcp_server_py.py",

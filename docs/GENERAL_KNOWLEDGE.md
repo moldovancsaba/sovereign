@@ -1,38 +1,62 @@
 # General Knowledge
 
-This is the shared knowledge index for SentinelSquad across the full managed project set.
+This file captures durable knowledge about `{sentinelsquad}` as a product.
 
-Use this page for knowledge that applies across projects, not one-off product implementation detail.
+## Product Identity
 
-## What Belongs Here
+`{sentinelsquad}` is a local-first desktop system where multiple AI agents collaborate in a unified chat, execute project-scoped work, and build long-term memory for software delivery.
 
-- shared delivery practices
-- recurring product heuristics
-- shared engineering lessons
-- cross-project glossary
-- navigation knowledge for agents
+It is not:
 
-## What Does Not Belong Here
+- a browser-first product
+- a cloud-required agent platform
+- a generic single-assistant chat wrapper
+- a portfolio-management repository
 
-- feature-specific product notes that only matter in one repository
-- release-only notes
-- temporary scratchpad content
+## Core Product Principles
 
-## Cross-Project Knowledge
+- The operator should be able to run the product locally on macOS.
+- Core behavior should work without GitHub, cloud auth, or hosted control planes.
+- Agent collaboration should be explicit, attributable, and auditable.
+- Long-term memory should be durable, inspectable, and attached to projects and threads.
+- Open-source technologies should form the foundation wherever practical.
 
-- SentinelSquad is the central management layer.
-- Product repositories are the implementation layers.
-- The board decides delivery flow.
-- This wiki decides navigation and shared standards.
-- The currently managed local projects are Amanoba, CardMass, Hatori, KormanyValto, LaunchMass, MessMass, Narimato, Reply, SentinelSquad, and SSO.
+## Recommended Technical Baseline
+
+- Eclipse Theia Desktop for the long-term IDE shell direction
+- Electron for desktop packaging
+- TypeScript and Node.js for product logic
+- PostgreSQL as the durable system of record
+- Prisma for schema and migration ergonomics
+- `pgvector` for retrieval-backed memory
+- Ollama as the primary local model runtime
+- MLX as an optional Apple Silicon runtime path
+- custom orchestration, memory, and tool-policy layers inside `{sentinelsquad}`
+- `launchd` for macOS-local service management
+
+## Architecture Heuristics
+
+- Keep the number of mandatory moving parts low.
+- Prefer one durable database over many specialized stores early.
+- Treat event history as a first-class system, not incidental logs.
+- Treat memory as both structured knowledge and retrieval data.
+- Build runtime abstraction at the product boundary, not through framework sprawl.
+
+## Operator Heuristics
+
+- A fresh operator should be able to install, launch, and understand the system without reading the entire codebase.
+- The app should explain what is active, what failed, and what to do next.
+- Agent names, roles, and current availability must be visible.
 
 ## Glossary
 
-- `SentinelSquad`: central board-management and knowledge repository
-- `Product repository`: the repository where product code lives
-- `Board`: GitHub Project used to track delivery status
-- `Issue`: the delivery record for a task
+- `Operator`: the human running `{sentinelsquad}` locally.
+- `Agent`: an AI worker with a role, runtime, and tool policy boundary.
+- `Unified chat`: the shared transcript where multiple agents and the operator collaborate.
+- `Project session`: the active workspace contract for tools, files, tasks, and memory.
+- `Long-term memory`: durable project knowledge persisted beyond a single exchange.
+- `Runtime provider`: the model backend used by an agent, such as Ollama or MLX.
 
 ## Maintenance Rule
 
-When a lesson becomes reusable across more than one project, add it here and link it from [WIKI.md](WIKI.md).
+Add knowledge here only if it is likely to remain useful across multiple implementation cycles. Temporary design notes belong in execution issues or focused architecture docs instead.

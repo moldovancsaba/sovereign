@@ -45,10 +45,30 @@ enum ThreadKind {
   PRODUCT
 }
 
+enum ProjectSessionStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum ProjectMemoryStatus {
+  CAPTURED
+  REVIEWED
+  SUPERSEDED
+  ARCHIVED
+}
+
 enum MessageAuthorType {
   HUMAN
   AGENT
   SYSTEM
+}
+
+enum ThreadEventKind {
+  TASK_ENQUEUED
+  TASK_MANUAL_REQUIRED
+  PROJECT_SESSION_OPENED
+  TOOL_CALL_EXECUTED
+  TOOL_CALL_FAILED
 }
 
 enum TaskStatus {
@@ -79,6 +99,7 @@ model User {
   threadsCreated ChatThread[] @relation("ThreadCreatedBy")
 
   tasksCreated AgentTask[]
+  projectSessionsCreated ProjectSession[]
   alphaContextWindowsCreated AlphaContextWindow[] @relation("AlphaContextWindowCreatedBy")
   alphaContextPackageInvariantsCreated AlphaContextPackageInvariant[] @relation("AlphaContextPackageInvariantCreatedBy")
 }
@@ -154,10 +175,72 @@ model ChatThread {
 
   createdBy User? @relation("ThreadCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   messages  ChatMessage[]
+  events    ChatEvent[]
+  memories  ProjectMemory[]
 
   tasks AgentTask[]
 
   @@unique([kind, ref])
+}
+
+model ChatEvent {
+  id         String          @id @default(cuid())
+  threadId   String
+  kind       ThreadEventKind
+  actorKey   String?
+  taskId     String?
+  payload    Json?
+  createdAt  DateTime        @default(now())
+
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+  @@index([kind, createdAt])
+  @@index([taskId])
+}
+
+model ProjectSession {
+  id           String               @id @default(cuid())
+  rootPath     String
+  relPath      String
+  displayName  String
+  status       ProjectSessionStatus @default(ACTIVE)
+  metadata     Json?
+  lastOpenedAt DateTime             @default(now())
+  createdById  String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  memories  ProjectMemory[]
+
+  @@unique([rootPath, relPath])
+  @@index([status, lastOpenedAt])
+  @@index([displayName])
+}
+
+model ProjectMemory {
+  id               String              @id @default(cuid())
+  projectSessionId String
+  threadId         String?
+  taskId           String?
+  sourceMessageId  String?
+  title            String
+  summary          String
+  content          String
+  tags             Json?
+  status           ProjectMemoryStatus @default(CAPTURED)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  projectSession ProjectSession @relation(fields: [projectSessionId], references: [id], onDelete: Cascade)
+  thread         ChatThread?     @relation(fields: [threadId], references: [id], onDelete: SetNull)
+  task           AgentTask?      @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([projectSessionId, createdAt])
+  @@index([projectSessionId, status, updatedAt])
+  @@index([threadId])
+  @@index([taskId])
 }
 
 model ChatMessage {
@@ -200,6 +283,7 @@ model AgentTask {
   agent     Agent      @relation(fields: [agentKey], references: [key], onDelete: Cascade)
   createdBy User?      @relation(fields: [createdById], references: [id], onDelete: SetNull)
   thread    ChatThread? @relation(fields: [threadId], references: [id], onDelete: SetNull)
+  memories  ProjectMemory[]
   promptPackageInvariant TaskPromptPackageInvariant?
 
   @@index([agentKey, status, createdAt])

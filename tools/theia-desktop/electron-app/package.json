@@ -1,0 +1,42 @@
+{
+  "name": "sentinelsquad-theia-desktop",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Eclipse Theia Desktop shell bootstrap for SentinelSquad",
+  "license": "UNLICENSED",
+  "main": "lib/backend/electron-main.js",
+  "scripts": {
+    "build": "theia build --mode development",
+    "start": "theia start",
+    "watch": "theia build --watch --mode development"
+  },
+  "dependencies": {
+    "@theia/core": "1.69.0",
+    "@theia/editor": "1.69.0",
+    "@theia/electron": "1.69.0",
+    "@theia/file-search": "1.69.0",
+    "@theia/filesystem": "1.69.0",
+    "@theia/markers": "1.69.0",
+    "@theia/messages": "1.69.0",
+    "@theia/mini-browser": "1.69.0",
+    "@theia/monaco": "1.69.0",
+    "@theia/navigator": "1.69.0",
+    "@theia/outline-view": "1.69.0",
+    "@theia/plugin-ext": "1.69.0",
+    "@theia/plugin-ext-vscode": "1.69.0",
+    "@theia/preferences": "1.69.0",
+    "@theia/process": "1.69.0",
+    "@theia/scm": "1.69.0",
+    "@theia/search-in-workspace": "1.69.0",
+    "@theia/terminal": "1.69.0",
+    "@theia/userstorage": "1.69.0",
+    "@theia/workspace": "1.69.0"
+  },
+  "devDependencies": {
+    "@theia/cli": "1.69.0",
+    "electron": "38.4.0"
+  },
+  "theia": {
+    "target": "electron"
+  }
+}

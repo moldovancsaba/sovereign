@@ -1,7 +1,7 @@
 {
   "name": "sentinelsquad-repo",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "SentinelSquad product repository",
   "workspaces": [
     "apps/sentinelsquad"
@@ -14,6 +14,11 @@
     "verify": "npm run typecheck && npm run build",
     "start": "npm --prefix apps/sentinelsquad run start",
     "worker": "npm --prefix apps/sentinelsquad run worker",
+    "desktop:bootstrap": "npm --prefix tools/theia-desktop run bootstrap",
+    "desktop:build": "npm --prefix tools/theia-desktop run build",
+    "desktop:start": "npm --prefix tools/theia-desktop run start",
+    "desktop:watch": "npm --prefix tools/theia-desktop run watch",
+    "desktop:install-app": "bash tools/macos/SentinelSquadDesktop/install_SentinelSquadDesktop.sh",
     "menubar:install": "bash tools/macos/SentinelSquadMenubar/install_SentinelSquadMenubar.sh",
     "service:install": "bash apps/sentinelsquad/scripts/launcher/sentinelsquad-daemon-install.sh",
     "service:status": "bash apps/sentinelsquad/scripts/launcher/sentinelsquad-daemon-status.sh",

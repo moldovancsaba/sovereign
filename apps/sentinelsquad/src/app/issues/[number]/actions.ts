@@ -1,9 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getServerSession } from "next-auth";
 import type { Prisma } from "@prisma/client";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/app-session";
 import { createMessage, getOrCreateThread } from "@/lib/chat";
 import { enqueueTask } from "@/lib/tasks";
 import {
@@ -78,7 +77,7 @@ async function resolveActiveIssueAgent(input: string) {
 }
 
 export async function updateIssueFields(issueNumber: number, formData: FormData) {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session?.user) throw new Error("Not authenticated.");
 
   const status = String(formData.get("Status") || "").trim();
@@ -127,7 +126,7 @@ export async function updateIssueFields(issueNumber: number, formData: FormData)
 }
 
 export async function sendIssueMessage(issueNumber: number, formData: FormData) {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session?.user) throw new Error("Not authenticated.");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -154,7 +153,7 @@ export async function sendIssueMessage(issueNumber: number, formData: FormData) 
 }
 
 export async function enqueueIssueTask(issueNumber: number, formData: FormData) {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session?.user) throw new Error("Not authenticated.");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -391,7 +390,7 @@ export async function enqueueIssueTask(issueNumber: number, formData: FormData) 
 }
 
 export async function requestIssueTaskControlAction(issueNumber: number, formData: FormData) {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session?.user) throw new Error("Not authenticated.");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -512,7 +511,7 @@ export async function requestIssueTaskControlAction(issueNumber: number, formDat
 }
 
 export async function resumeIssueTaskAction(issueNumber: number, formData: FormData) {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session?.user) throw new Error("Not authenticated.");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -642,7 +641,7 @@ export async function resumeIssueTaskAction(issueNumber: number, formData: FormD
 }
 
 export async function activateIssueAlphaContextAction(issueNumber: number, formData: FormData) {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session?.user) throw new Error("Not authenticated.");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -689,7 +688,7 @@ export async function activateIssueAlphaContextAction(issueNumber: number, formD
 }
 
 export async function transferIssueAlphaContextAction(issueNumber: number, formData: FormData) {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session?.user) throw new Error("Not authenticated.");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -737,7 +736,7 @@ export async function transferIssueAlphaContextAction(issueNumber: number, formD
 }
 
 export async function closeIssueAlphaContextAction(issueNumber: number, formData: FormData) {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session?.user) throw new Error("Not authenticated.");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -782,7 +781,7 @@ export async function closeIssueAlphaContextAction(issueNumber: number, formData
 }
 
 export async function recordIssueHandoverPackageAction(issueNumber: number, formData: FormData) {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session?.user) throw new Error("Not authenticated.");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -829,7 +828,7 @@ export async function recordIssueHandoverPackageAction(issueNumber: number, form
 }
 
 export async function overrideIssueGuardrailAction(issueNumber: number, formData: FormData) {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session?.user) throw new Error("Not authenticated.");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

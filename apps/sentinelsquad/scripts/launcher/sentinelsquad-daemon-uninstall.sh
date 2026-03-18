@@ -5,10 +5,12 @@ LAUNCH_AGENTS_DIR="$HOME/Library/LaunchAgents"
 PLISTS=(
   "$LAUNCH_AGENTS_DIR/com.sentinelsquad.ollama.plist"
   "$LAUNCH_AGENTS_DIR/com.sentinelsquad.app.plist"
+  "$LAUNCH_AGENTS_DIR/com.sentinelsquad.worker.plist"
 )
 LABELS=(
   "com.sentinelsquad.ollama"
   "com.sentinelsquad.app"
+  "com.sentinelsquad.worker"
 )
 
 for label in "${LABELS[@]}"; do

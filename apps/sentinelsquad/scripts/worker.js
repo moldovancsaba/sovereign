@@ -49,7 +49,8 @@ const { parseAgentHandoffs } = require("./lib/agent-handoff-router");
 const {
   strictConfigFromEnv,
   roleForAgent,
-  enforceStrictOrchestration
+  enforceStrictOrchestration,
+  evaluateExecutionRolePolicy
 } = require("./lib/strict-orchestration");
 const {
   resolveTaskMemoryConfig,
@@ -66,6 +67,11 @@ const {
   buildPolicyReplayResultSummary,
   formatPolicyReplayReport
 } = require("./lib/policy-replay");
+const {
+  DEFAULT_LOCAL_MODEL_FALLBACK_CANDIDATES,
+  listInstalledLocalModels: listInstalledLocalModelsFromProvider,
+  resolveInstalledLocalModel: resolveInstalledLocalModelShared
+} = require("./lib/local-runtime");
 
 const prisma = new PrismaClient();
 
@@ -100,9 +106,14 @@ const GITHUB_PROJECT_NUMBER = Number(
   process.env.SENTINELSQUAD_GITHUB_PROJECT_NUMBER || "1"
 );
 const SETTINGS_FILE = path.join(__dirname, "..", ".sentinelsquad", "settings.json");
+const LOCAL_MODEL_RESOLUTION_CACHE_TTL_MS = 15000;
+const LOCAL_MODEL_FALLBACK_CANDIDATES = DEFAULT_LOCAL_MODEL_FALLBACK_CANDIDATES.filter(
+  (model) => String(model || "").trim().toLowerCase() !== "granite-4.0-h-1b"
+);
 
 let cachedProjectMeta = null;
 const cachedIssueBoardStatus = new Map();
+const localModelCatalogCache = new Map();
 let WORKER_AGENT_KEY = RAW_AGENT_KEY;
 let WORKER_CONTROL_ROLE = null;
 let CLAIM_ALL_TASKS = false;
@@ -244,6 +255,38 @@ function asRecord(value) {
 
 function normalizeText(value) {
   return String(value || "").trim();
+}
+
+async function captureProjectMemoryRecord(params, tx) {
+  const projectSessionId = normalizeText(params?.projectSessionId);
+  const answer = normalizeText(params?.answer);
+  if (!projectSessionId || !answer) return null;
+
+  const summary = answer.replace(/\s+/g, " ").trim().slice(0, 240);
+  const content = answer.replace(/\s+/g, " ").trim().slice(0, 4000);
+  const tags = Array.from(
+    new Set(
+      [
+        normalizeText(params?.agentKey),
+        normalizeText(params?.model),
+        ...((normalizeText(params?.title).toLowerCase().match(/[a-z0-9_]+/g) || []).slice(0, 12))
+      ].filter(Boolean)
+    )
+  ).slice(0, 16);
+
+  return tx.projectMemory.create({
+    data: {
+      projectSessionId,
+      threadId: normalizeText(params?.threadId) || null,
+      taskId: normalizeText(params?.taskId) || null,
+      sourceMessageId: normalizeText(params?.sourceMessageId) || null,
+      title: normalizeText(params?.title) || "Untitled task result",
+      summary,
+      content,
+      tags,
+      status: "CAPTURED"
+    }
+  });
 }
 
 function redactSensitiveOutput(text, channel = "generic") {
@@ -726,6 +769,44 @@ function readShellAccessSettings() {
 function readEnvVar(name) {
   if (!name) return "";
   return String(process.env[name] || "").trim();
+}
+
+async function listInstalledLocalModels(endpoint, timeoutMs) {
+  const cacheKey = String(endpoint || OLLAMA_BASE_URL);
+  const now = Date.now();
+  const cached = localModelCatalogCache.get(cacheKey);
+  if (cached && cached.expiresAt > now) {
+    return cached.models;
+  }
+  const models = await listInstalledLocalModelsShared(cacheKey, timeoutMs, cached);
+  localModelCatalogCache.set(cacheKey, {
+    models,
+    expiresAt: now + LOCAL_MODEL_RESOLUTION_CACHE_TTL_MS
+  });
+  return models;
+}
+
+async function listInstalledLocalModelsShared(endpoint, timeoutMs, cached) {
+  const models = await listInstalledLocalModelsFromProvider({
+    endpoint,
+    timeoutMs: Math.min(timeoutMs || REQUEST_TIMEOUT_MS, 15000),
+    cacheTtlMs: LOCAL_MODEL_RESOLUTION_CACHE_TTL_MS
+  });
+  if (!models.length && cached?.models?.length) {
+    return cached.models;
+  }
+  return models;
+}
+
+async function resolveInstalledLocalModel(endpoint, requestedModel, timeoutMs) {
+  const installedModels = await listInstalledLocalModels(endpoint, timeoutMs);
+  if (installedModels.length === 0) return requestedModel;
+  return resolveInstalledLocalModelShared({
+    endpoint,
+    requestedModel,
+    timeoutMs: Math.min(timeoutMs || REQUEST_TIMEOUT_MS, 15000),
+    fallbackCandidates: LOCAL_MODEL_FALLBACK_CANDIDATES
+  });
 }
 
 function resolveAgentExecutionConfig(agent, runtimeResolution = null) {
@@ -1278,6 +1359,19 @@ async function postMessage(threadId, authorType, authorKey, content, meta, db = 
       authorKey: authorKey || null,
       content: dlpGuard.text,
       meta: Object.keys(safeMetaBase).length ? safeMetaBase : undefined
+    }
+  });
+}
+
+async function postThreadEvent(threadId, kind, payload, db = prisma) {
+  if (!threadId) return null;
+  return db.chatEvent.create({
+    data: {
+      threadId,
+      kind,
+      actorKey: normalizeText(payload?.agentKey) || normalizeText(payload?.actorKey) || null,
+      taskId: normalizeText(payload?.taskId) || null,
+      payload: payload || null
     }
   });
 }
@@ -2454,9 +2548,11 @@ function composePromptWithMemory(basePrompt, memoryPromptBlock) {
 }
 
 function buildFullThreadHistoryBlock(messages) {
-  const source = Array.isArray(messages) ? messages : [];
+  const source = Array.isArray(messages)
+    ? messages.filter((message) => message?.authorType === "HUMAN" || message?.authorType === "AGENT")
+    : [];
   if (!source.length) return "";
-  const lines = source.map((m) => {
+  const lines = source.slice(-20).map((m) => {
     const author =
       m?.authorType === "AGENT"
         ? `@${normalizeText(m?.authorKey) || "Agent"}`
@@ -2477,9 +2573,15 @@ async function runLocalRuntime(
   memoryPromptBlock = null,
   fullHistoryBlock = null
 ) {
-  if (!config.model) {
+  const requestedModel = String(config.model || "").trim();
+  if (!requestedModel) {
     throw new WorkerTaskError("CONFIG_MISSING", `No model configured for @${task.agentKey}.`, false);
   }
+  const resolvedModel = await resolveInstalledLocalModel(
+    config.endpoint,
+    requestedModel,
+    config.requestTimeoutMs
+  );
   const basePrompt = normalizeText(promptOverride) || task.title;
   let userPrompt = composePromptWithMemory(basePrompt, memoryPromptBlock);
   if (normalizeText(fullHistoryBlock)) {
@@ -2508,7 +2610,7 @@ async function runLocalRuntime(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: config.model,
+        model: resolvedModel,
         stream: false,
         messages: [
           {
@@ -2541,7 +2643,8 @@ async function runLocalRuntime(
     meta: {
       provider: config.provider,
       baseUrl: config.endpoint,
-      model: config.model,
+      model: resolvedModel,
+      requestedModel,
       grounded: Boolean(grounding),
       product: grounding?.product || null,
       durationMs: Date.now() - startedAt,
@@ -2684,14 +2787,113 @@ async function executeToolCallProtocol(
   let filesystemContext = null;
   let gitContext = null;
   let shellContext = null;
+  let projectSessionContext = null;
+
+  async function resolveProjectSessionExecutionContext() {
+    if (projectSessionContext) return projectSessionContext;
+
+    const payloadRecord = asRecord(task?.payload);
+    const requestedSessionId = normalizeText(payloadRecord?.projectSessionId) || null;
+    const requestedSessionRelPath = normalizeText(payloadRecord?.projectSessionRelPath) || null;
+
+    const session =
+      requestedSessionId
+        ? await prisma.projectSession.findUnique({
+            where: { id: requestedSessionId },
+            select: { id: true, rootPath: true, relPath: true, displayName: true }
+          })
+        : null;
+
+    const rootPath = normalizeText(session?.rootPath) || process.cwd();
+    const relPath = normalizeText(session?.relPath) || requestedSessionRelPath || "";
+    const sessionPath = path.resolve(rootPath, relPath || ".");
+    projectSessionContext = {
+      id: normalizeText(session?.id) || null,
+      displayName: normalizeText(session?.displayName) || null,
+      relPath,
+      rootPath,
+      sessionPath
+    };
+    return projectSessionContext;
+  }
+
+  async function emitToolCallThreadEvent(kind, call, payload = {}) {
+    const sessionContext = await resolveProjectSessionExecutionContext();
+    await postThreadEvent(task.threadId, kind, {
+      taskId: task.id,
+      callId: call.id,
+      tool: call.tool,
+      agentKey: task.agentKey,
+      projectSessionId: sessionContext.id,
+      projectSessionRelPath: sessionContext.relPath || null,
+      projectSessionPath: sessionContext.sessionPath,
+      ...payload
+    });
+  }
+
+  async function enforceStrictExecutionRoleBoundary(call, policyDecision) {
+    const roleDecision = evaluateExecutionRolePolicy({
+      config: STRICT_ORCHESTRATION,
+      agentKey: task.agentKey,
+      requestedByAgent: task.agentKey,
+      tool: call.tool
+    });
+    if (!roleDecision.strictApplied || roleDecision.allowed) return;
+
+    const reason = roleDecision.reason;
+    await recordLifecycleAudit({
+      entityType: "TASK",
+      entityId: task.id,
+      actorRole: "ORCHESTRATOR",
+      action: "STRICT_ROLE_GATE",
+      fromState: task.status,
+      toState: task.status,
+      allowed: false,
+      reason,
+      metadata: {
+        callId: call.id,
+        tool: call.tool,
+        strictRole: roleDecision.role,
+        accessFamily: roleDecision.access?.family || null,
+        accessClass: roleDecision.access?.access || null,
+        policyClass: policyDecision?.policyClass || null
+      }
+    });
+    await emitToolCallThreadEvent("TOOL_CALL_FAILED", call, {
+      status: "FAILED",
+      policyClass: policyDecision?.policyClass || null,
+      code: "STRICT_ROLE_VIOLATION",
+      strictRole: roleDecision.role,
+      accessFamily: roleDecision.access?.family || null,
+      accessClass: roleDecision.access?.access || null,
+      reason
+    });
+    if (roleDecision.role === "CONTROLLER") {
+      await recordAlphaFailureEvent({
+        failureClass: "STRICT_ROLE_VIOLATION",
+        issueNumber: task.issueNumber ?? null,
+        taskId: task.id,
+        threadId: task.threadId || null,
+        metadata: {
+          agentKey: task.agentKey,
+          tool: call.tool,
+          reason,
+          strictRole: roleDecision.role
+        }
+      });
+    }
+    throw new WorkerTaskError("STRICT_ROLE_VIOLATION", reason, false);
+  }
 
   async function ensureWorkspaceContext() {
     if (!filesystemContext) {
+      const sessionContext = await resolveProjectSessionExecutionContext();
       filesystemContext = await resolveFilesystemToolContext({
         settingsFile: SETTINGS_FILE,
-        cwd: process.cwd(),
+        cwd: sessionContext.sessionPath,
         env: process.env
       });
+      filesystemContext.projectSession = sessionContext;
     }
     return filesystemContext;
   }
@@ -2704,6 +2906,7 @@ async function executeToolCallProtocol(
         primaryWorkspaceRoot: workspaceContext.primaryWorkspaceRoot,
         env: process.env
       });
+      gitContext.projectSession = workspaceContext.projectSession || null;
     }
     return gitContext;
   }
@@ -2793,6 +2996,8 @@ async function executeToolCallProtocol(
       continue;
     }
 
+    await enforceStrictExecutionRoleBoundary(call, policyDecision);
+
     if (call.tool.startsWith("git.")) {
       const resolvedGitContext = await ensureGitContext();
       try {
@@ -2832,6 +3037,14 @@ async function executeToolCallProtocol(
             policyClass: policyDecision.policyClass,
             dryRun: false
           }
+        });
+        await emitToolCallThreadEvent("TOOL_CALL_EXECUTED", call, {
+          status: "SUCCESS",
+          policyClass: policyDecision.policyClass,
+          repoRoot: gitResult.audit?.repoRoot || null,
+          branch: gitResult.audit?.branch || null,
+          commitSha: gitResult.audit?.commitSha || null,
+          prNumber: gitResult.audit?.prNumber || null
         });
 
         responses.push(
@@ -2910,6 +3123,12 @@ async function executeToolCallProtocol(
             code: error instanceof ToolGitError ? error.code : "UNKNOWN"
           }
         });
+        await emitToolCallThreadEvent("TOOL_CALL_FAILED", call, {
+          status: "FAILED",
+          policyClass: policyDecision.policyClass,
+          code: error instanceof ToolGitError ? error.code : "UNKNOWN",
+          reason
+        });
         throw new WorkerTaskError("TOOL_GIT_DENIED", reason, false);
       }
     }
@@ -2917,13 +3136,15 @@ async function executeToolCallProtocol(
     if (call.tool === "shell.exec") {
       const workspaceContext = await ensureWorkspaceContext();
       if (!shellContext) {
+        const sessionContext = await resolveProjectSessionExecutionContext();
         shellContext = await resolveShellToolContext({
           sessionId: `task-${task.id}`,
           workspaceRoots: workspaceContext.workspaceRoots,
-          defaultCwd: readShellAccessSettings().defaultCwd,
+          defaultCwd: sessionContext.sessionPath,
           inheritFullProcessEnv: readShellAccessSettings().inheritFullProcessEnv,
           env: process.env
         });
+        shellContext.projectSession = sessionContext;
       }
       const artifactId = `${task.id}:${call.id}:${Date.now().toString(36)}`;
       const streamState = {
@@ -3163,6 +3384,14 @@ async function executeToolCallProtocol(
           `redacted=${artifactState.redactedChunkCount} blocked=${artifactState.blockedChunkCount} ` +
           `exit=${shellAudit.exitCode ?? "unknown"}`;
         const responseText = `${sanitizedAnswer}\n${artifactSummary}`;
+        await emitToolCallThreadEvent("TOOL_CALL_EXECUTED", call, {
+          status: "SUCCESS",
+          policyClass: policyDecision.policyClass,
+          exitCode: shellAudit.exitCode ?? null,
+          durationMs: shellAudit.durationMs ?? null,
+          cwd: shellAudit.relativeCwd || ".",
+          artifactId
+        });
         responses.push(
           envelope.calls.length === 1 ? responseText : `[${call.id}] ${responseText}`
         );
@@ -3255,6 +3484,13 @@ async function executeToolCallProtocol(
             code: error instanceof ToolShellError ? error.code : "UNKNOWN"
           }
         });
+        await emitToolCallThreadEvent("TOOL_CALL_FAILED", call, {
+          status: "FAILED",
+          policyClass: policyDecision.policyClass,
+          code: error instanceof ToolShellError ? error.code : "UNKNOWN",
+          reason: safeReason,
+          artifactId
+        });
         if (error instanceof ToolShellError) {
           if (error.code === "TASK_CANCELED") {
             throw new WorkerTaskError("TASK_CANCELED", safeReason, false);
@@ -3319,6 +3555,13 @@ async function executeToolCallProtocol(
             dryRun: false
           }
         });
+        await emitToolCallThreadEvent("TOOL_CALL_EXECUTED", call, {
+          status: "SUCCESS",
+          policyClass: policyDecision.policyClass,
+          workspaceRoot: workspaceContext.primaryWorkspaceRoot,
+          relativePath: fsResult.audit?.relativePath || null,
+          operation: fsResult.audit?.operation || call.tool
+        });
         responses.push(
           envelope.calls.length === 1 ? safeFsAnswer : `[${call.id}] ${safeFsAnswer}`
         );
@@ -3373,6 +3616,12 @@ async function executeToolCallProtocol(
             dryRun: false,
             code: error instanceof ToolFilesystemError ? error.code : "UNKNOWN"
           }
+        });
+        await emitToolCallThreadEvent("TOOL_CALL_FAILED", call, {
+          status: "FAILED",
+          policyClass: policyDecision.policyClass,
+          code: error instanceof ToolFilesystemError ? error.code : "UNKNOWN",
+          reason
         });
         throw new WorkerTaskError("TOOL_FILESYSTEM_DENIED", reason, false);
       }
@@ -3998,6 +4247,24 @@ async function processTask(task) {
         ...result.meta
       }, tx);
 
+      const payloadRecord = asRecord(task.payload);
+      const memoryRecord = await captureProjectMemoryRecord(
+        {
+          projectSessionId:
+            payloadRecord && typeof payloadRecord.projectSessionId === "string"
+              ? payloadRecord.projectSessionId
+              : null,
+          threadId: task.threadId,
+          taskId: task.id,
+          sourceMessageId: doneMessage?.id || null,
+          title: task.title,
+          answer: safeResultAnswer,
+          agentKey,
+          model: result.meta?.model || null
+        },
+        tx
+      );
+
       await routeAgentHandoffs({
         requestedByAgent: agentKey,
         requestedByRole: task.agent?.controlRole || "BETA",
@@ -4033,7 +4300,15 @@ async function processTask(task) {
           fromState: current.status,
           toState: "DONE",
           allowed: true,
-          reason: decision.reason
+          reason: decision.reason,
+          metadata: {
+            projectSessionId:
+              payloadRecord && typeof payloadRecord.projectSessionId === "string"
+                ? payloadRecord.projectSessionId
+                : null,
+            memoryCaptured: Boolean(memoryRecord),
+            projectMemoryId: memoryRecord?.id || null
+          }
         },
         tx
       );

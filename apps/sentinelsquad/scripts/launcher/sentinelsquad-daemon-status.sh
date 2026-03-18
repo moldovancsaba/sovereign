@@ -4,6 +4,7 @@ set -euo pipefail
 LABELS=(
   "com.sentinelsquad.ollama"
   "com.sentinelsquad.app"
+  "com.sentinelsquad.worker"
 )
 
 for label in "${LABELS[@]}"; do

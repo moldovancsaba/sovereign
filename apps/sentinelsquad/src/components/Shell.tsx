@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession, isLocalAuthBypassEnabled } from "@/lib/app-session";
 import { SignOutButton } from "@/components/SignOutButton";
 
 export async function Shell(props: {
@@ -8,7 +7,8 @@ export async function Shell(props: {
   subtitle?: string;
   children: React.ReactNode;
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
+  const localBypass = isLocalAuthBypassEnabled();
 
   return (
     <div className="min-h-screen">
@@ -56,7 +56,13 @@ export async function Shell(props: {
                 {session.user.name}
               </div>
             ) : null}
-            <SignOutButton />
+            {localBypass ? (
+              <div className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-200">
+                Local desktop mode
+              </div>
+            ) : (
+              <SignOutButton />
+            )}
           </div>
         </div>
       </header>

@@ -40,7 +40,7 @@ jobs:
           NEXTAUTH_SECRET=ci-nextauth-secret
           GITHUB_CLIENT_ID=ci-github-client-id
           GITHUB_CLIENT_SECRET=ci-github-client-secret
-          DATABASE_URL=postgresql://sentinelsquad:sentinelsquad@localhost:3579/sentinelsquad?schema=public
+          DATABASE_URL=postgresql://sentinelsquad:sentinelsquad@localhost:34765/sentinelsquad?schema=public
           SENTINELSQUAD_GITHUB_TOKEN=ci-placeholder-token
           SENTINELSQUAD_GITHUB_PROJECT_OWNER=moldovancsaba
           SENTINELSQUAD_GITHUB_PROJECT_NUMBER=1

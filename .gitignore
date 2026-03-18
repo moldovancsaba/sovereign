@@ -16,6 +16,8 @@ apps/sentinelsquad/test-results/
 apps/sentinelsquad/tsconfig.tsbuildinfo
 apps/sentinelsquad/nexus/__pycache__/
 apps/sentinelsquad/scripts/nexus/__pycache__/
+tools/theia-desktop/electron-app/lib/
+tools/theia-desktop/electron-app/src-gen/
 
 # Prisma
 apps/sentinelsquad/prisma/dev.db

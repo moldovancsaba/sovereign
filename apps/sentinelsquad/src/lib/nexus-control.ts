@@ -15,17 +15,17 @@ export function getNexusRoleMapping(): NexusRoleMapping {
   };
 }
 
-export function getChatDevPath() {
+export function getExternalWorkflowRuntimePath() {
   return String(
     process.env.SENTINELSQUAD_CHATDEV_PATH ||
       path.resolve(process.cwd(), "..", "..", "external", "ChatDev")
   ).trim();
 }
 
-export function getNexusSeminarWorkflowPath() {
+export function getOrchestrationBenchmarkWorkflowPath() {
   return String(
     process.env.SENTINELSQUAD_CHATDEV_WORKFLOW_PATH ||
-      path.join(getChatDevPath(), "yaml_instance", "nexus_controller_seminar.yaml")
+      path.join(getExternalWorkflowRuntimePath(), "yaml_instance", "nexus_controller_seminar.yaml")
   ).trim();
 }
 

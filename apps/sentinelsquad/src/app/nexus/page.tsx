@@ -3,9 +3,9 @@ import { Shell } from "@/components/Shell";
 import { requireSession } from "@/lib/session";
 import { listUnifiedChatAgentAvailability } from "@/lib/active-agents";
 import {
-  getChatDevPath,
+  getExternalWorkflowRuntimePath,
   getNexusRoleMapping,
-  getNexusSeminarWorkflowPath,
+  getOrchestrationBenchmarkWorkflowPath,
   readNexusModelRouting,
   readNexusRunArtifact
 } from "@/lib/nexus-control";
@@ -27,7 +27,7 @@ export default async function NexusPage() {
   const activeAgents = agents.filter((agent) => agent.active);
 
   return (
-    <Shell title="Nexus Control" subtitle="SentinelSquad + ChatDev orchestration controls">
+    <Shell title="Orchestration Control" subtitle="SentinelSquad orchestration controls">
       <div className="space-y-4">
         <section className="rounded-2xl border border-white/12 bg-black/25 p-4">
           <div className="text-sm font-semibold">Role Mapping</div>
@@ -47,12 +47,12 @@ export default async function NexusPage() {
         </section>
 
         <section className="rounded-2xl border border-cyan-300/25 bg-cyan-300/10 p-4">
-          <div className="text-sm font-semibold text-cyan-50">ChatDev Seminar</div>
+          <div className="text-sm font-semibold text-cyan-50">External Workflow Benchmark</div>
           <div className="mt-2 text-xs text-cyan-100/90">
-            Path: <span className="font-mono">{getChatDevPath()}</span>
+            Runtime path: <span className="font-mono">{getExternalWorkflowRuntimePath()}</span>
           </div>
           <div className="mt-1 text-xs text-cyan-100/90">
-            Workflow: <span className="font-mono">{getNexusSeminarWorkflowPath()}</span>
+            Workflow: <span className="font-mono">{getOrchestrationBenchmarkWorkflowPath()}</span>
           </div>
           <div className="mt-3 flex gap-2">
             <form action={runNexusSeminarAction}>
@@ -60,7 +60,7 @@ export default async function NexusPage() {
                 type="submit"
                 className="rounded-lg border border-cyan-200/35 bg-cyan-200/15 px-3 py-1 text-xs font-medium text-cyan-50 hover:bg-cyan-200/25"
               >
-                Run Seminar
+                Run Benchmark
               </button>
             </form>
             <form action={syncNexusSeminarToSentinelSquadAction}>
@@ -68,7 +68,7 @@ export default async function NexusPage() {
                 type="submit"
                 className="rounded-lg border border-emerald-200/35 bg-emerald-200/15 px-3 py-1 text-xs font-medium text-emerald-50 hover:bg-emerald-200/25"
               >
-                Sync Result To Chat/Task
+                Sync Result To Chat
               </button>
             </form>
           </div>

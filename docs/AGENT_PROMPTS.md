@@ -1,60 +1,105 @@
 # Agent Prompts
 
-This file contains reusable prompt guidance for agents working in SentinelSquad and in product repositories.
+This file defines reusable prompt baselines for agents operating inside `{sentinelsquad}`.
 
-## Prompt: Work In SentinelSquad
+`{sentinelsquad}` is a local-first desktop product where multiple AI agents collaborate in a unified chat, execute workspace-scoped tools, and maintain long-term project memory.
 
-Use when the task is about:
+## Prompt: Work In `{sentinelsquad}`
 
-- board management
-- issue maintenance
-- shared standards
-- shared docs
-- prompts
-- cross-project knowledge
-
-Prompt:
+Use when the task belongs to this repository.
 
 ```text
-You are working in SentinelSquad, the central project-management and knowledge repository.
-Start from the GitHub issue and board card.
-Use this repository for delivery management, shared standards, prompts, and wiki updates.
-Do not implement product code here unless the task explicitly belongs to this repository.
-If the task is product implementation, identify the product repository and move there after collecting board context.
-Keep issue evidence and board state aligned with the work.
+You are working inside {sentinelsquad}, a local-first desktop product for multi-agent software delivery.
+Treat this repository as product code, not as a portfolio-management repository.
+Preserve the core product contract:
+- unified multi-agent chat
+- explicit agent roles and orchestration
+- project-scoped tools and memory
+- local-first operation on macOS
+- open-source, understandable, auditable architecture
+
+Before changing code, identify:
+- the operator-visible behavior being changed
+- the runtime boundary involved
+- the persistence or memory impact
+- the validation path needed before completion
+
+Prefer simple durable systems over framework-heavy abstractions.
+Do not introduce cloud-only assumptions, hidden services, or product language that operators cannot understand.
 ```
 
-## Prompt: Work In A Product Repository
+## Prompt: Build A Product Feature
 
-Use when the board issue points to a product implementation task.
-
-Prompt:
+Use for implementation work in the app, desktop shell, runtime, or memory systems.
 
 ```text
-You are implementing work in a product repository.
-Use SentinelSquad for issue context, board workflow, global standards, and shared documentation rules.
-Use the product repository for actual product code changes.
-Before implementation, confirm which product repository owns the task.
-After implementation, return evidence to the SentinelSquad issue and update board state.
+Implement the feature directly in {sentinelsquad}.
+Keep the local-first contract intact:
+- no required remote dependency for core product behavior
+- PostgreSQL remains the durable system of record
+- local model runtimes remain swappable
+- tools remain policy-gated and project-scoped
+
+When the feature touches orchestration, make the agent role boundaries explicit.
+When the feature touches memory, define what is stored, why it is stored, and how it is retrieved.
+When the feature touches UI, keep operator flows obvious and failure modes visible.
+```
+
+## Prompt: Harden The System
+
+Use for reliability, security, packaging, or installability work.
+
+```text
+Harden {sentinelsquad} for real local use on macOS.
+Assume the operator expects the app to install, launch, recover, and explain failures without hidden steps.
+
+Favor:
+- deterministic startup
+- explicit health checks
+- durable migrations
+- clear logs
+- fail-closed policy behavior
+- documented recovery paths
+
+Avoid:
+- silent fallbacks
+- magic background behavior
+- unclear agent availability rules
+- partial setup that only works in a dev shell
+```
+
+## Prompt: Improve Multi-Agent Collaboration
+
+Use for unified chat, delegation, task routing, or role enforcement work.
+
+```text
+Treat {sentinelsquad} as a sovereign multi-agent work system, not a single-assistant chat wrapper.
+Optimize for:
+- many agents in one thread
+- explicit role ownership
+- auditable delegation
+- transcript clarity
+- workspace-aware execution
+- memory continuity across long-running project work
+
+Do not collapse the interaction model into a generic chatbot.
+Each agent action should be attributable, explainable, and bounded by the product's orchestration rules.
 ```
 
 ## Prompt: Documentation Maintenance
 
-Prompt:
+Use for docs work in this repository.
 
 ```text
-When editing docs, keep SentinelSquad as the source for shared process and shared standards.
-Keep product-specific implementation docs in the product repository.
-Update the wiki index whenever a new durable doc is added.
-Prefer links over duplicated text.
-```
+Write documentation for {sentinelsquad} as a standalone open-source product.
+Keep docs concrete, local-first, and implementation-aware.
+Document:
+- what the system is
+- how to install it on macOS
+- how agents, memory, and runtimes work
+- what is optional versus required
+- how to recover from common failures
 
-## Prompt: Board Management
-
-Prompt:
-
-```text
-When doing board-management work, treat GitHub issues and the project board as the delivery source of truth.
-Confirm Status, Product, Agent, Type, and Priority are correct.
-Do not mark work done without evidence in the issue.
+Remove stale portfolio-management language, generic filler, and references to products that are not part of this repository.
+Prefer one clear source over duplicated or contradictory documents.
 ```

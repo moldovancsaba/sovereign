@@ -1,15 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/app-session";
 import { createMessage, getOrCreateThread } from "@/lib/chat";
 import { parseAgentMention } from "@/lib/mentions";
 import { enqueueTask } from "@/lib/tasks";
 import {
   listUnifiedChatAgentAvailability,
+  type UnifiedChatAgentAvailability,
   resolveUnifiedChatControllerAgent
 } from "@/lib/active-agents";
+import { getLocalRuntimeHealth } from "@/lib/runtime-health";
 import {
   parseToolCallApprovalRequestCommand,
   parseToolCallCommand,
@@ -21,8 +22,51 @@ import {
   createToolCallApprovalToken
 } from "@/lib/tool-call-approval";
 
+function normalizeOperatorCommand(input: string) {
+  return input
+    .trim()
+    .replace(/^@sentinelsquad-local-operator\s+/i, "")
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function isAvailabilityCommand(input: string) {
+  const normalized = normalizeOperatorCommand(input);
+  return (
+    normalized === "/agents" ||
+    normalized === "agents" ||
+    normalized === "what agents are available?" ||
+    normalized === "what agents are available" ||
+    normalized === "/status"
+  );
+}
+
+function isStatusCommand(input: string) {
+  const normalized = normalizeOperatorCommand(input);
+  return normalized === "/status";
+}
+
+function formatAvailabilitySummary(agents: UnifiedChatAgentAvailability[]) {
+  if (!agents.length) {
+    return "No unified-chat agents are registered yet.";
+  }
+
+  const lines = agents.map((agent) => {
+    const status = agent.active ? "active" : "inactive";
+    const details = [
+      agent.controlRole,
+      agent.runtime,
+      agent.readiness,
+      agent.model || "no-model"
+    ].join(" / ");
+    return `@${agent.key}: ${status} (${details})${agent.reason ? ` - ${agent.reason}` : ""}`;
+  });
+
+  return `Available agents:\n${lines.join("\n")}`;
+}
+
 export async function sendGlobalMessage(formData: FormData) {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session?.user) throw new Error("Not authenticated.");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -45,6 +89,55 @@ export async function sendGlobalMessage(formData: FormData) {
     authorType: "HUMAN",
     content
   });
+
+  if (isAvailabilityCommand(content)) {
+    const agents = await listUnifiedChatAgentAvailability();
+    if (isStatusCommand(content)) {
+      const runtime = await getLocalRuntimeHealth();
+      const provider = runtime.providers[0];
+      const providerLine = provider
+        ? `Runtime: ${provider.provider} ${provider.status} @ ${provider.endpoint}${
+            provider.error ? ` - ${provider.error}` : ""
+          }`
+        : "Runtime: unavailable";
+      const modelsLine = provider
+        ? `Installed models: ${
+            provider.installedModels.length ? provider.installedModels.join(", ") : "none"
+          }`
+        : "Installed models: none";
+      const agentLines = runtime.agents.map((agent) => {
+        const model = agent.resolvedModel || agent.configuredModel || "no-model";
+        return `@${agent.agentKey}: ${agent.runtime} / ${agent.providerStatus} / ${model}${
+          agent.issue ? ` - ${agent.issue}` : ""
+        }`;
+      });
+      await createMessage({
+        threadId: thread.id,
+        authorType: "SYSTEM",
+        content: [providerLine, modelsLine, "", "Agent runtime status:", ...agentLines].join("\n"),
+        meta: {
+          kind: "runtime_status_snapshot",
+          providerStatus: provider?.status || "UNAVAILABLE",
+          installedModelCount: provider?.installedModels.length || 0,
+          agentCount: runtime.agents.length
+        }
+      });
+      revalidatePath("/chat");
+      return;
+    }
+    await createMessage({
+      threadId: thread.id,
+      authorType: "SYSTEM",
+      content: formatAvailabilitySummary(agents),
+      meta: {
+        kind: "agent_availability_snapshot",
+        count: agents.length,
+        activeCount: agents.filter((agent) => agent.active).length
+      }
+    });
+    revalidatePath("/chat");
+    return;
+  }
 
   const mention = parseAgentMention(content);
   if (mention.kind === "invalid") {
@@ -225,7 +318,7 @@ export async function sendGlobalMessage(formData: FormData) {
 }
 
 export async function initializeNexusCellAction() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session?.user) throw new Error("Not authenticated.");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -235,7 +328,7 @@ export async function initializeNexusCellAction() {
 
   const controllerKey = String(process.env.SENTINELSQUAD_ORCH_CONTROLLER_KEY || "Controller").trim();
   const command =
-    "@Controller initialize the Nexus-OS environment and run a baseline benchmark on the team.";
+    "@Controller initialize the SentinelSquad orchestration environment and run a baseline team benchmark.";
 
   const thread = await getOrCreateThread({
     kind: "GLOBAL",
@@ -258,7 +351,7 @@ export async function initializeNexusCellAction() {
     await createMessage({
       threadId: thread.id,
       authorType: "SYSTEM",
-      content: `Initialize Cell not queued: neither @${controllerKey} nor any active ALPHA unified-chat agent is available.`,
+      content: `Initialize squad orchestration not queued: neither @${controllerKey} nor any active ALPHA unified-chat agent is available.`,
       meta: {
         kind: "nexus_cell_init_unavailable",
         controllerKey
@@ -285,10 +378,10 @@ export async function initializeNexusCellAction() {
     authorType: "SYSTEM",
     content:
       task.status === "MANUAL_REQUIRED"
-        ? `Initialize Cell queued as manual-required for @${resolvedController.key}: ${task.error || "Agent not ready."}`
+        ? `Initialize squad orchestration queued as manual-required for @${resolvedController.key}: ${task.error || "Agent not ready."}`
         : controller.fallback
-        ? `Initialize Cell queued for @${resolvedController.key} (fallback ALPHA; @${controllerKey} not found).`
-        : `Initialize Cell queued for @${resolvedController.key}.`,
+        ? `Initialize squad orchestration queued for @${resolvedController.key} (fallback ALPHA; @${controllerKey} not found).`
+        : `Initialize squad orchestration queued for @${resolvedController.key}.`,
     meta: {
       kind: "nexus_cell_init_enqueued",
       agentKey: resolvedController.key,

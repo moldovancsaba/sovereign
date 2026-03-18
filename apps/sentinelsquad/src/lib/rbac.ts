@@ -1,6 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/app-session";
 import { prisma } from "@/lib/prisma";
 
 export type SentinelSquadUserRole = "ADMIN" | "OPERATOR" | "VIEWER" | "CLIENT";
@@ -115,7 +114,7 @@ async function recordRbacAuditEvent(input: {
 export async function requireRbacAccess(
   options: RequireRbacAccessOptions
 ): Promise<RbacAuthContext> {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session?.user) throw new Error("Not authenticated.");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

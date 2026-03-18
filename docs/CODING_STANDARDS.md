@@ -1,44 +1,67 @@
 # Coding Standards
 
-These are the shared engineering standards across projects managed by SentinelSquad.
+These are the engineering standards for `{sentinelsquad}`.
+
+## Product Baseline
+
+- Build for a local-first desktop product.
+- Prefer open-source, inspectable dependencies.
+- Keep the system understandable by one strong engineer reading the codebase directly.
+- Favor durable architecture over fashionable abstraction.
 
 ## Core Rules
 
-- No hardcoded business data when structured configuration or data modeling is appropriate.
-- No baked-in styling that blocks reuse, theming, or layout evolution.
-- No undocumented behavior changes.
-- No dead files, abandoned variants, or duplicate implementations without a clear reason.
-- No silent coupling between repositories.
+- No hidden runtime dependencies for core product behavior.
+- No cloud-only assumptions in the default path.
+- No hardcoded product state when configuration or schema is the right solution.
+- No duplicate orchestration logic across UI, worker, and runtime layers.
+- No stale product naming, legacy internal brands, or misleading operator copy.
 
-## Architecture Expectations
+## Architecture Rules
 
-- prefer explicit boundaries
-- prefer composable modules over hidden global state
-- prefer configuration over magic constants
-- prefer small, reversible changes
-- prefer traceable naming
+- Keep a clear boundary between product shell, orchestration, tool execution, memory, and persistence.
+- Keep PostgreSQL as the durable source of truth for threads, tasks, events, memory metadata, and audit.
+- Keep agent availability derived from one shared model.
+- Keep tool execution project-scoped and policy-gated.
+- Keep long-term memory explicit: what is stored, when it is updated, and how it is recalled.
 
-## Data and Configuration
+## Runtime Rules
 
-- keep environment-specific values in configuration, not in feature code
-- keep shared constants centralized when multiple features depend on them
-- use schema-backed or typed structures where possible
+- Local model runtimes must be swappable.
+- Ollama is the primary local runtime; MLX is an optional accelerator path.
+- Runtime fallback behavior must be explicit and observable.
+- Startup, health, and recovery flows must be deterministic.
 
-## Documentation Discipline
+## Code Design Rules
 
-- shared rules belong here in SentinelSquad
-- product-local implementation docs belong in the product repository
-- update docs when process or standards change
+- Prefer small modules with explicit inputs and outputs.
+- Prefer typed contracts over stringly-typed ad hoc payloads.
+- Prefer composition over hidden singleton coupling.
+- Prefer one implementation path over parallel legacy paths.
+- Prefer boring code that operators can trust.
 
-## Validation
+## Data and Migration Rules
+
+- All durable state changes must be backed by schema and migration changes where appropriate.
+- Event and memory records must be append-friendly and auditable.
+- Destructive data changes require an explicit migration plan.
+
+## UI Rules
+
+- The operator must be able to tell what the system is doing.
+- Loading, failure, and degraded states must be visible and actionable.
+- Agent identity, role, readiness, and model should not be ambiguous in the UI.
+
+## Validation Rules
 
 Before calling work complete:
 
 - build passes
+- typecheck passes
 - relevant tests pass
-- warnings are understood or removed
-- issue evidence is posted
+- startup path is still coherent
+- documentation stays aligned with behavior
 
-## Cross-Repository Rule
+## Dependency Rule
 
-If the change affects multiple products, document the standard here first.
+Add a new dependency only if it materially improves delivery, reliability, or maintainability. If the system can be simpler without it, keep it simpler.

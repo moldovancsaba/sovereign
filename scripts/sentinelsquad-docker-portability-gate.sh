@@ -11,7 +11,7 @@ COMPOSE_FILE="$REPO_ROOT/docker-compose.yml"
 PREFLIGHT_SCRIPT="$SCRIPT_DIR/sentinelsquad-docker-preflight.sh"
 BOOTSTRAP_SCRIPT="$SCRIPT_DIR/sentinelsquad-docker-bootstrap.sh"
 
-DB_PORT="${SENTINELSQUAD_DB_PORT:-3579}"
+DB_PORT="${SENTINELSQUAD_DB_PORT:-34765}"
 APP_PORT="${SENTINELSQUAD_APP_PORT:-3577}"
 NEXTAUTH_URL_VALUE="${NEXTAUTH_URL:-http://localhost:${APP_PORT}}"
 

@@ -12,6 +12,8 @@ function envHasDevLogin() {
   return Boolean(process.env.SENTINELSQUAD_DEV_LOGIN_PASSWORD);
 }
 
+const credentialsEnabled = envHasDevLogin();
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
@@ -61,16 +63,25 @@ export const authOptions: NextAuthOptions = {
         ]
       : [])
   ],
-  session: { strategy: "database" },
+  session: { strategy: credentialsEnabled ? "jwt" : "database" },
   pages: {
     signIn: "/signin"
   },
   callbacks: {
-    async session({ session, user }) {
+    async jwt({ token, user }) {
+      if (user?.id) {
+        token.sub = user.id;
+      }
+      return token;
+    },
+    async session({ session, user, token }) {
       if (session.user) {
-        // Expose the user id for server actions.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (session.user as any).id = user.id;
+        const resolvedUserId = user?.id || (typeof token?.sub === "string" ? token.sub : "");
+        if (resolvedUserId) {
+          // Expose the user id for server actions.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (session.user as any).id = resolvedUserId;
+        }
       }
       return session;
     }

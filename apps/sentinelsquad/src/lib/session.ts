@@ -1,9 +1,8 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/app-session";
 import { ensureSentinelSquadBootstrap } from "@/lib/bootstrap";
 
 export async function requireSession() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session?.user) {
     return null;
   }

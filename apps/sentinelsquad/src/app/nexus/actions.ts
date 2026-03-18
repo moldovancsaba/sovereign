@@ -3,15 +3,14 @@
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import { revalidatePath } from "next/cache";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/app-session";
 import { createMessage, getOrCreateThread } from "@/lib/chat";
 import { enqueueTask } from "@/lib/tasks";
 import { resolveUnifiedChatControllerAgent } from "@/lib/active-agents";
 import {
-  getChatDevPath,
+  getExternalWorkflowRuntimePath,
   getNexusRoleMapping,
-  getNexusSeminarWorkflowPath,
+  getOrchestrationBenchmarkWorkflowPath,
   readNexusRunArtifact,
   writeNexusRunArtifact
 } from "@/lib/nexus-control";
@@ -19,7 +18,7 @@ import {
 const execAsync = promisify(exec);
 
 async function requireUser() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session?.user) throw new Error("Not authenticated.");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const userId = (session.user as any).id as string | undefined;
@@ -41,14 +40,15 @@ async function resolveControllerAgentKey() {
 export async function runNexusSeminarAction() {
   await requireUser();
 
-  const chatDevPath = getChatDevPath();
-  const workflowPath = getNexusSeminarWorkflowPath();
-  const prompt = "@Controller initialize the Nexus-OS environment and run a baseline benchmark on the team.";
+  const runtimePath = getExternalWorkflowRuntimePath();
+  const workflowPath = getOrchestrationBenchmarkWorkflowPath();
+  const prompt =
+    "@Controller initialize the SentinelSquad orchestration environment and run a baseline team benchmark.";
 
   const command = [
-    `cd \"${chatDevPath}\"`,
+    `cd \"${runtimePath}\"`,
     `source .venv/bin/activate`,
-    `printf '%s\\n' \"${prompt.replace(/\"/g, "'")}\" | BASE_URL='http://127.0.0.1:11434/v1' API_KEY='ollama-local' python run.py --path \"${workflowPath}\" --name NexusControllerSeminar`
+    `printf '%s\\n' \"${prompt.replace(/\"/g, "'")}\" | BASE_URL='http://127.0.0.1:11434/v1' API_KEY='ollama-local' python run.py --path \"${workflowPath}\" --name SentinelSquadControllerBenchmark`
   ].join(" && ");
 
   try {
@@ -76,7 +76,7 @@ export async function runNexusSeminarAction() {
       workflowPath,
       output
     });
-    throw new Error("ChatDev seminar execution failed. Check last run output on /nexus.");
+    throw new Error("Orchestration benchmark execution failed. Check last run output on /nexus.");
   }
 
   revalidatePath("/nexus");
@@ -86,7 +86,7 @@ export async function syncNexusSeminarToSentinelSquadAction() {
   const { userId, userEmail } = await requireUser();
 
   const last = await readNexusRunArtifact();
-  if (!last) throw new Error("No seminar run artifact found.");
+  if (!last) throw new Error("No orchestration benchmark run artifact found.");
 
   const controller = await resolveControllerAgentKey();
   if (!controller.key) {
@@ -101,7 +101,7 @@ export async function syncNexusSeminarToSentinelSquadAction() {
   });
 
   const summary = [
-    `Nexus seminar sync (${last.ok ? "PASS" : "FAIL"})`,
+    `SentinelSquad orchestration sync (${last.ok ? "PASS" : "FAIL"})`,
     `timestamp=${last.timestamp}`,
     `workflow=${last.workflowPath}`,
     "output:",
@@ -114,7 +114,7 @@ export async function syncNexusSeminarToSentinelSquadAction() {
     authorType: "SYSTEM",
     content: summary,
     meta: {
-      kind: "nexus_seminar_sync",
+      kind: "orchestration_sync",
       success: last.ok,
       fallbackController: controller.fallback,
       requestedControllerKey: controller.requested
@@ -123,24 +123,24 @@ export async function syncNexusSeminarToSentinelSquadAction() {
 
   const task = await enqueueTask({
     agentKey: controller.key,
-    title: "Nexus seminar follow-up: validate and report",
+    title: "SentinelSquad orchestration follow-up: validate and report",
     threadId: thread.id,
     createdById: userId,
     createdByEmail: userEmail,
     payload: {
-      kind: "nexus_seminar_sync_task",
-      seminarSuccess: last.ok,
-      seminarTimestamp: last.timestamp,
-      seminarOutput: last.output.slice(0, 12000)
+      kind: "orchestration_sync_task",
+      benchmarkSuccess: last.ok,
+      benchmarkTimestamp: last.timestamp,
+      benchmarkOutput: last.output.slice(0, 12000)
     }
   });
 
   await createMessage({
     threadId: thread.id,
     authorType: "SYSTEM",
-    content: `Nexus seminar follow-up queued for @${controller.key} (task ${task.id}).`,
+    content: `SentinelSquad orchestration follow-up queued for @${controller.key} (task ${task.id}).`,
     meta: {
-      kind: "nexus_seminar_followup_enqueued",
+      kind: "orchestration_followup_enqueued",
       taskId: task.id,
       agentKey: controller.key
     }

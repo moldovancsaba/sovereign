@@ -1,0 +1,12 @@
+{
+  "name": "sentinelsquad-theia-desktop-workspace",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Standalone Eclipse Theia Desktop bootstrap for SentinelSquad",
+  "scripts": {
+    "bootstrap": "npm --prefix electron-app install",
+    "build": "npm --prefix electron-app run build",
+    "start": "npm --prefix electron-app run start",
+    "watch": "npm --prefix electron-app run watch"
+  }
+}

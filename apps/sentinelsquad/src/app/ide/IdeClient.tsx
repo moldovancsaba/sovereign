@@ -3,7 +3,9 @@
 import { useMemo, useState, useTransition } from "react";
 import Editor, { DiffEditor } from "@monaco-editor/react";
 import {
+  ideArchiveProjectSessionAction,
   ideGitDiffAction,
+  ideOpenProjectSessionAction,
   ideHandoffAction,
   ideListAction,
   ideReadAction,
@@ -21,6 +23,13 @@ type RuntimeAgent = {
   key: string;
   runtime: string;
   controlRole: string;
+};
+
+type ProjectSession = {
+  id: string;
+  relPath: string;
+  displayName: string;
+  lastOpenedAt?: string;
 };
 
 function guessLanguage(relPath: string) {
@@ -41,6 +50,8 @@ export function IdeClient(props: {
   initialNodes: IdeNode[];
   initialCommandPolicy: { cwdRelPath: string; matchedPathPrefix: string | null; allowedPrefixes: string[] };
   unsafeModeInfo: { enabled: boolean; requiredPhrase: string };
+  rootProjectSession: ProjectSession;
+  projectSessions: ProjectSession[];
   agents: RuntimeAgent[];
 }) {
   const [cwd, setCwd] = useState(props.initialBase === "." ? "" : props.initialBase);
@@ -54,6 +65,8 @@ export function IdeClient(props: {
   const [diffBaseline, setDiffBaseline] = useState("");
   const [showInlineDiff, setShowInlineDiff] = useState(false);
   const [status, setStatus] = useState("");
+  const [projectSessions, setProjectSessions] = useState<ProjectSession[]>(props.projectSessions);
+  const [activeProjectSessionId, setActiveProjectSessionId] = useState(props.rootProjectSession.id);
   const [handoffAgent, setHandoffAgent] = useState(props.agents[0]?.key || "");
   const [handoffTemplate, setHandoffTemplate] = useState<"bugfix" | "refactor" | "test">("bugfix");
   const [handoffContext, setHandoffContext] = useState("Please review and continue implementation from this file.");
@@ -75,6 +88,53 @@ export function IdeClient(props: {
         setNodes(result.nodes);
         setAllowedPrefixes(result.commandPolicy.allowedPrefixes);
         setStatus("Directory loaded.");
+      } catch (err) {
+        setStatus(err instanceof Error ? err.message : String(err));
+      }
+    });
+  }
+
+  function openProjectSession(nextRelPath: string, displayName?: string) {
+    startTransition(async () => {
+      try {
+        setStatus(`Opening project session: ${nextRelPath || "."}`);
+        const fd = new FormData();
+        fd.set("relPath", nextRelPath);
+        if (displayName) fd.set("displayName", displayName);
+        const result = await ideOpenProjectSessionAction(fd);
+        setActiveProjectSessionId(result.id);
+        setProjectSessions((prev) => {
+          const next = [
+            {
+              id: result.id,
+              relPath: result.relPath,
+              displayName: result.displayName,
+              lastOpenedAt: new Date(result.lastOpenedAt).toISOString()
+            },
+            ...prev.filter((entry) => entry.id !== result.id)
+          ];
+          return next.slice(0, 12);
+        });
+        loadDir(result.relPath);
+      } catch (err) {
+        setStatus(err instanceof Error ? err.message : String(err));
+      }
+    });
+  }
+
+  function archiveProjectSession(sessionId: string) {
+    startTransition(async () => {
+      try {
+        const fd = new FormData();
+        fd.set("sessionId", sessionId);
+        await ideArchiveProjectSessionAction(fd);
+        const remaining = projectSessions.filter((session) => session.id !== sessionId);
+        setProjectSessions(remaining);
+        if (activeProjectSessionId === sessionId) {
+          setActiveProjectSessionId(props.rootProjectSession.id);
+          loadDir("");
+        }
+        setStatus("Project session archived.");
       } catch (err) {
         setStatus(err instanceof Error ? err.message : String(err));
       }
@@ -209,6 +269,56 @@ export function IdeClient(props: {
     <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
       <section className="rounded-2xl border border-white/12 bg-black/25 p-3">
         <div className="mb-2 text-xs text-white/60">Workspace: {props.workspaceRoot}</div>
+        <div className="mb-3 rounded-xl border border-cyan-300/20 bg-cyan-300/10 p-2">
+          <div className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100/80">
+            Project Sessions
+          </div>
+          <div className="mb-2 text-xs text-white/65">
+            Register folders as durable local project sessions so chat, tasks, and tool execution can share the same workspace identity.
+          </div>
+          <div className="mb-2 flex gap-2">
+            <button
+              type="button"
+              onClick={() => openProjectSession(cwd, cwd ? cwd.split("/").pop() : "workspace")}
+              className="rounded-md border border-cyan-300/30 bg-cyan-300/10 px-2 py-1 text-xs hover:bg-cyan-300/20"
+            >
+              Open Current Folder As Session
+            </button>
+          </div>
+          <div className="space-y-1">
+            {projectSessions.map((session) => (
+              <div
+                key={session.id}
+                className={`flex items-center justify-between rounded-lg border px-2 py-1 text-xs ${
+                  activeProjectSessionId === session.id
+                    ? "border-cyan-300/40 bg-cyan-300/15"
+                    : "border-white/10 bg-black/20"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveProjectSessionId(session.id);
+                    loadDir(session.relPath);
+                  }}
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <div className="truncate font-medium text-white">{session.displayName}</div>
+                  <div className="truncate text-white/55">{session.relPath || "."}</div>
+                </button>
+                {session.id !== props.rootProjectSession.id ? (
+                  <button
+                    type="button"
+                    onClick={() => archiveProjectSession(session.id)}
+                    className="ml-2 rounded border border-white/15 px-2 py-0.5 text-[10px] text-white/70 hover:bg-white/10"
+                  >
+                    Archive
+                  </button>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </div>
         <div className="mb-3 flex items-center gap-2">
           <button
             type="button"

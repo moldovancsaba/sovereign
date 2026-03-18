@@ -1,54 +1,42 @@
 # Wiki
 
-This is the navigation hub for SentinelSquad documentation across the full managed project set.
+This is the navigation hub for `{sentinelsquad}` documentation.
 
 ## Start Here
 
 - [../README.md](../README.md)
 - [../READMEDEV.md](../READMEDEV.md)
+- [../CONTRIBUTING.md](../CONTRIBUTING.md)
 
-## Core Navigation
+## Architecture
 
-- [PROJECT_MANAGEMENT.md](PROJECT_MANAGEMENT.md)
-- [PROJECT_REPOSITORIES.md](PROJECT_REPOSITORIES.md)
+- [architecture/0001-theia-desktop-foundation.md](architecture/0001-theia-desktop-foundation.md)
+- [architecture/0002-rock-solid-open-source-hardening.md](architecture/0002-rock-solid-open-source-hardening.md)
+- [SENTINELSQUAD_DELIVERY_ROADMAP.md](SENTINELSQUAD_DELIVERY_ROADMAP.md)
+
+## Operator And Setup Docs
+
+- [SETUP.md](SETUP.md)
 - [BUILD_AND_RUN.md](BUILD_AND_RUN.md)
 - [GENERAL_KNOWLEDGE.md](GENERAL_KNOWLEDGE.md)
-- [AGENT_PROMPTS.md](AGENT_PROMPTS.md)
 
-## Standards
+## Standards And Shared Guidance
 
 - [CODING_STANDARDS.md](CODING_STANDARDS.md)
 - [UI_UX_STANDARDS.md](UI_UX_STANDARDS.md)
 - [RULES.md](RULES.md)
-
-## Process and Setup
-
-- [SETUP.md](SETUP.md)
-- [SYNC.md](SYNC.md)
+- [AGENT_PROMPTS.md](AGENT_PROMPTS.md)
 - [EXECUTABLE_PROMPT_PACKAGE.md](EXECUTABLE_PROMPT_PACKAGE.md)
 
-## Product Pages
+## Product Context
 
-- [projects/amanoba.md](projects/amanoba.md)
-- [projects/cardmass.md](projects/cardmass.md)
-- [projects/hatori.md](projects/hatori.md)
-- [projects/kormanyvalto.md](projects/kormanyvalto.md)
-- [projects/launchmass.md](projects/launchmass.md)
-- [projects/messmass.md](projects/messmass.md)
-- [projects/narimato.md](projects/narimato.md)
-- [projects/reply.md](projects/reply.md)
 - [projects/sentinelsquad-product.md](projects/sentinelsquad-product.md)
-- [projects/sso.md](projects/sso.md)
+- [GENERAL_KNOWLEDGE.md](GENERAL_KNOWLEDGE.md)
 
-## How To Use This Wiki
+## Documentation Use Rule
 
-- Use this repo for project-management knowledge, not product-local implementation details.
-- Add new shared documentation here when it affects more than one product or changes how agents operate.
-- Add a wiki link whenever you create a new permanent Markdown document.
-- Prefer linking over duplicating.
-
-## How To Build
-
-The canonical build/run page is:
-
-- [BUILD_AND_RUN.md](BUILD_AND_RUN.md)
+- `README.md`, `BUILD_AND_RUN.md`, `SETUP.md`, and `HANDOVER.md` define implemented operator truth
+- architecture docs define system direction and target architecture
+- roadmap docs define delivery phases and stage labels
+- product docs define what `{sentinelsquad}` is
+- standards docs define implementation discipline

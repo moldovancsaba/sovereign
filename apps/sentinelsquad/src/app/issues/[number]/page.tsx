@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Shell } from "@/components/Shell";
 import { requireSession } from "@/lib/session";
-import { getOrCreateThread, listMessages } from "@/lib/chat";
+import { getOrCreateThread } from "@/lib/chat";
 import {
   getProjectAlphaLockSnapshot,
   listProjectAlphaContextAuditEvents
@@ -40,6 +40,7 @@ import {
 } from "@/lib/executable-prompt";
 import { MentionInput } from "@/components/MentionInput";
 import { listUnifiedChatAgentAvailability } from "@/lib/active-agents";
+import { listThreadTimeline } from "@/lib/thread-events";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -158,7 +159,10 @@ export default async function IssuePage(props: {
     title: `Issue #${issueNumber}`,
     createdById: userId ?? null
   });
-  const messages = await listMessages(thread.id, 200);
+  const timeline = await listThreadTimeline(thread.id, 200);
+  const messages = timeline
+    .filter((entry) => entry.type === "message")
+    .map((entry) => entry.message);
   const promptValidation = validateExecutablePromptPackage(issue.body || "");
 
   const statusOpts = meta.fields.find((f) => f.name === "Status")?.options ?? [];
@@ -193,15 +197,7 @@ export default async function IssuePage(props: {
   });
   const mentionables = buildMentionables({
     agentKeys: activeAgents.map((agent) => agent.key),
-    humanNames: Array.from(
-      new Set(
-        messages
-          .filter((m) => m.authorType === "HUMAN")
-          .map((m) => m.user?.name || "")
-          .concat(session.user?.name ? [session.user.name] : [])
-          .filter(Boolean)
-      )
-    )
+    humanNames: []
   });
   const activeAgentForTasks =
     boardAgentResolution.mappedAgentKey &&
@@ -797,56 +793,93 @@ export default async function IssuePage(props: {
           </div>
           <div className="max-h-[55vh] overflow-auto p-5">
             <div className="space-y-4">
-              {messages.map((m) => (
-                (() => {
-                  const routed = readRoutedHandoffMeta(m.meta);
+              {timeline.map((entry) => {
+                if (entry.type === "event") {
+                  const payload = asRecord(entry.event.payload);
+                  const eventKind = String(entry.event.kind);
+                  const projectSessionRelPath =
+                    typeof payload?.projectSessionRelPath === "string"
+                      ? payload.projectSessionRelPath
+                      : typeof payload?.relPath === "string"
+                      ? payload.relPath
+                      : null;
                   return (
-                    <div key={m.id} className="flex gap-3">
-                      <div className="mt-1 h-8 w-8 flex-none rounded-full border border-white/15 bg-white/5" />
+                    <div key={entry.event.id} className="flex gap-3">
+                      <div className="mt-1 h-8 w-8 flex-none rounded-full border border-cyan-300/20 bg-cyan-300/10" />
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 text-xs text-white/60">
-                          <div className="font-medium text-white/75">
-                            {m.authorType === "HUMAN"
-                              ? m.user?.name || "Human"
-                              : m.authorKey || m.authorType}
-                          </div>
+                          <div className="font-medium text-cyan-100/85">Event</div>
                           <div className="font-mono">
-                            {new Date(m.createdAt).toLocaleString()}
+                            {new Date(entry.event.createdAt).toLocaleString()}
                           </div>
                         </div>
-                        <div className="mt-1 whitespace-pre-wrap text-sm text-white/90">
-                          {m.content}
+                        <div className="mt-1 rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-sm text-cyan-50">
+                          {eventKind === "PROJECT_SESSION_OPENED"
+                            ? `Project session opened: ${projectSessionRelPath || "."}`
+                            : eventKind === "TOOL_CALL_FAILED"
+                            ? `Tool call failed for @${entry.event.actorKey || "agent"}`
+                            : eventKind === "TOOL_CALL_EXECUTED"
+                            ? `Tool call executed for @${entry.event.actorKey || "agent"}`
+                            : eventKind === "TASK_MANUAL_REQUIRED"
+                            ? `Task queued as manual-required for @${entry.event.actorKey || "agent"}`
+                            : `Task queued for @${entry.event.actorKey || "agent"}`}
+                          {typeof payload?.title === "string" ? ` - ${payload.title}` : ""}
+                          {typeof payload?.tool === "string" ? ` - ${payload.tool}` : ""}
+                          {typeof payload?.reason === "string" ? ` - ${payload.reason}` : ""}
                         </div>
-                        {routed ? (
-                          <div
-                            className={`mt-2 rounded-lg border px-2 py-1 text-xs ${
-                              routed.manualRequired
-                                ? "border-amber-300/25 bg-amber-300/10 text-amber-100"
-                                : "border-cyan-300/25 bg-cyan-300/10 text-cyan-100"
-                            }`}
-                          >
-                            {routed.manualRequired ? "Manual-required handoff" : "Routed handoff"} @
-                            {routed.requestedByAgent} -&gt; @{routed.targetAgentKey}
-                            {routed.sourceMessageId
-                              ? ` (src ${routed.sourceMessageId.slice(0, 8)})`
-                              : ""}
-                            {routed.reason ? ` - ${routed.reason}` : ""}
-                            {routed.sourceChannel ? ` - channel=${routed.sourceChannel}` : ""}
-                            {routed.routeCode ? ` - route=${routed.routeCode}` : ""}
-                            {routed.nbaImpact ? ` - impact=${routed.nbaImpact}` : ""}
-                            {routed.humanGateRequired
-                              ? routed.humanGateApproved
-                                ? " - gate=approved"
-                                : " - gate=required"
-                              : ""}
-                          </div>
-                        ) : null}
                       </div>
                     </div>
                   );
-                })()
-              ))}
-              {messages.length === 0 ? (
+                }
+
+                const m = entry.message;
+                const routed = readRoutedHandoffMeta(m.meta);
+                return (
+                  <div key={m.id} className="flex gap-3">
+                    <div className="mt-1 h-8 w-8 flex-none rounded-full border border-white/15 bg-white/5" />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 text-xs text-white/60">
+                        <div className="font-medium text-white/75">
+                          {m.authorType === "HUMAN"
+                            ? m.user?.name || "Human"
+                            : m.authorKey || m.authorType}
+                        </div>
+                        <div className="font-mono">
+                          {new Date(m.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="mt-1 whitespace-pre-wrap text-sm text-white/90">
+                        {m.content}
+                      </div>
+                      {routed ? (
+                        <div
+                          className={`mt-2 rounded-lg border px-2 py-1 text-xs ${
+                            routed.manualRequired
+                              ? "border-amber-300/25 bg-amber-300/10 text-amber-100"
+                              : "border-cyan-300/25 bg-cyan-300/10 text-cyan-100"
+                          }`}
+                        >
+                          {routed.manualRequired ? "Manual-required handoff" : "Routed handoff"} @
+                          {routed.requestedByAgent} -&gt; @{routed.targetAgentKey}
+                          {routed.sourceMessageId
+                            ? ` (src ${routed.sourceMessageId.slice(0, 8)})`
+                            : ""}
+                          {routed.reason ? ` - ${routed.reason}` : ""}
+                          {routed.sourceChannel ? ` - channel=${routed.sourceChannel}` : ""}
+                          {routed.routeCode ? ` - route=${routed.routeCode}` : ""}
+                          {routed.nbaImpact ? ` - impact=${routed.nbaImpact}` : ""}
+                          {routed.humanGateRequired
+                            ? routed.humanGateApproved
+                              ? " - gate=approved"
+                              : " - gate=required"
+                            : ""}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
+              {timeline.length === 0 ? (
                 <div className="text-sm text-white/70">
                   No messages yet. Use this thread as the canonical place for task coordination.
                 </div>

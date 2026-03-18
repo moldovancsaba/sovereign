@@ -67,6 +67,137 @@ function buildControllerValidationCommand(sourceContent) {
   );
 }
 
+function classifyToolAccess(tool) {
+  const normalized = normalizeText(tool);
+  if (!normalized) {
+    return {
+      family: "UNKNOWN",
+      access: "UNKNOWN",
+      description: "unknown tool"
+    };
+  }
+
+  if (normalized === "shell.exec") {
+    return {
+      family: "SHELL",
+      access: "MUTATION",
+      description: "shell execution"
+    };
+  }
+
+  if (normalized.startsWith("git.")) {
+    if (
+      normalized === "git.status" ||
+      normalized === "git.diff" ||
+      normalized === "git.log" ||
+      normalized === "git.show" ||
+      normalized === "git.branch.list"
+    ) {
+      return {
+        family: "GIT",
+        access: "READ_ONLY",
+        description: "read-only git access"
+      };
+    }
+    return {
+      family: "GIT",
+      access: "MUTATION",
+      description: "git mutation"
+    };
+  }
+
+  if (normalized.startsWith("filesystem.")) {
+    if (
+      normalized === "filesystem.list" ||
+      normalized === "filesystem.read" ||
+      normalized === "filesystem.search" ||
+      normalized === "filesystem.stat"
+    ) {
+      return {
+        family: "FILESYSTEM",
+        access: "READ_ONLY",
+        description: "read-only filesystem access"
+      };
+    }
+    return {
+      family: "FILESYSTEM",
+      access: "MUTATION",
+      description: "filesystem mutation"
+    };
+  }
+
+  return {
+    family: "UNKNOWN",
+    access: "UNKNOWN",
+    description: normalized
+  };
+}
+
+function evaluateExecutionRolePolicy(params) {
+  const cfg = params?.config || strictConfigFromEnv();
+  if (!cfg.enabled) {
+    return {
+      allowed: true,
+      strictApplied: false,
+      role: null,
+      reason: "Strict orchestration disabled."
+    };
+  }
+
+  const agentKey = normalizeText(params?.agentKey || params?.requestedByAgent);
+  const role = roleForAgent(agentKey, cfg);
+  if (!role) {
+    return {
+      allowed: true,
+      strictApplied: false,
+      role: null,
+      reason: "Agent is outside strict orchestration roles."
+    };
+  }
+
+  const tool = normalizeText(params?.tool);
+  const access = classifyToolAccess(tool);
+
+  if (role === "DRAFTER") {
+    const allowed = access.family === "FILESYSTEM" && access.access === "READ_ONLY";
+    return {
+      allowed,
+      strictApplied: true,
+      role,
+      tool,
+      access,
+      reason: allowed
+        ? "@Drafter may use read-only filesystem inspection while producing specifications."
+        : `STRICT_ROLE_VIOLATION: @Drafter cannot execute ${access.description}. Route implementation work to @Writer.`
+    };
+  }
+
+  if (role === "WRITER") {
+    return {
+      allowed: true,
+      strictApplied: true,
+      role,
+      tool,
+      access,
+      reason: "@Writer is the implementation role and may execute workspace tools."
+    };
+  }
+
+  const allowed =
+    (access.family === "FILESYSTEM" && access.access === "READ_ONLY") ||
+    (access.family === "GIT" && access.access === "READ_ONLY");
+  return {
+    allowed,
+    strictApplied: true,
+    role,
+    tool,
+    access,
+    reason: allowed
+      ? "@Controller may use read-only validation tools."
+      : `STRICT_ROLE_VIOLATION: @Controller cannot execute ${access.description}. Validation must remain read-only.`
+  };
+}
+
 function enforceStrictOrchestration(params) {
   const cfg = params?.config || strictConfigFromEnv();
   const sourceContent = normalizeText(params?.sourceContent);
@@ -174,5 +305,6 @@ function enforceStrictOrchestration(params) {
 module.exports = {
   strictConfigFromEnv,
   roleForAgent,
-  enforceStrictOrchestration
+  enforceStrictOrchestration,
+  evaluateExecutionRolePolicy
 };

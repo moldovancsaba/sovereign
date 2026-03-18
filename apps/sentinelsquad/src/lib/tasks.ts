@@ -546,6 +546,39 @@ export async function enqueueTask(params: {
       });
     }
 
+    if (params.threadId) {
+      await tx.chatEvent.create({
+        data: {
+          threadId: params.threadId,
+          kind: finalStatus === "MANUAL_REQUIRED" ? "TASK_MANUAL_REQUIRED" : "TASK_ENQUEUED",
+          actorKey: params.agentKey,
+          taskId: task.id,
+          payload: {
+            agentKey: params.agentKey,
+            title: params.title,
+            issueNumber: params.issueNumber ?? null,
+            status: finalStatus,
+            error: finalError,
+            projectSessionId:
+              payloadRecord && typeof payloadRecord.projectSessionId === "string"
+                ? payloadRecord.projectSessionId
+                : null,
+            projectSessionRelPath:
+              payloadRecord && typeof payloadRecord.projectSessionRelPath === "string"
+                ? payloadRecord.projectSessionRelPath
+                : null,
+            sourceKind:
+              payloadRecord.provenance &&
+              typeof payloadRecord.provenance === "object" &&
+              !Array.isArray(payloadRecord.provenance) &&
+              typeof (payloadRecord.provenance as Record<string, unknown>).sourceKind === "string"
+                ? (payloadRecord.provenance as Record<string, unknown>).sourceKind
+                : null
+          } as never
+        }
+      });
+    }
+
     return task;
   });
 }

@@ -1,25 +1,73 @@
-# SentinelSquad Product
+# {sentinelsquad} Product
 
-## Role
+## Product Role
 
-SentinelSquad is also a product we develop directly inside this repository.
+`{sentinelsquad}` is the local-first desktop product for multi-agent software delivery and long-term project memory.
 
-## Local Repository
+The product ambition is:
 
-- `/Users/moldovancsaba/Projects/sentinelsquad`
+- AI agents as the software team
+- one unified transcript
+- sovereign decision intelligence
+- durable project knowledge
+- real workspace execution under explicit policy
+
+## Greenfield Target Stack
+
+If the product were designed from zero with no legacy influence, the recommended stack would be:
+
+- Eclipse Theia Desktop
+- Electron
+- TypeScript
+- Node.js
+- PostgreSQL
+- Prisma
+- `pgvector`
+- Ollama
+- MLX
+- launchd
+- custom `{sentinelsquad}` orchestration, memory, and tool-execution layers
+
+## Product Boundaries
+
+`{sentinelsquad}` owns:
+
+- agent identity and readiness
+- thread, task, and event truth
+- role chain and handoffs
+- approvals and policy
+- project sessions
+- project memory
+- runtime selection policy
+
+External systems own:
+
+- token generation
+- optional embedding generation
+- optional tool/runtime adapters
+
+GitHub owns:
+
+- source hosting
+- pull requests
+- collaboration workflows
+
+GitHub does not own local runtime truth.
 
 ## Repository Boundary
 
-This is the special case in the portfolio:
+The local repository is:
 
-- this repository is the central management repository
-- this repository is also the SentinelSquad product repository
+- `/Users/moldovancsaba/Projects/sentinelsquad`
 
-That means SentinelSquad product implementation may happen here directly.
+This repository is the product codebase for `{sentinelsquad}`.
 
-## Agent Guidance
+## Delivery Boundary
 
-- read the issue first
-- determine whether the task is shared management work or SentinelSquad product work
-- both kinds of work may remain in this repository
-- keep the board and shared docs aligned either way
+The SSOT for delivery planning may live on the shared `mvp-factory-control` project board, but the engineering truth for product implementation lives in this repository’s code and architecture docs.
+
+That means:
+
+- board issues define delivery sequencing
+- this repo defines implementation truth
+- the two must stay synchronized

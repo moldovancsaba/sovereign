@@ -2,10 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Shell } from "@/components/Shell";
 import { requireSession } from "@/lib/session";
-import { getProjectMeta, listProjectItems } from "@/lib/github";
+import { getProjectMeta, listProjectItems, type ProjectItem } from "@/lib/github";
 import { listActiveProjectAlphaLocks } from "@/lib/alpha-context";
 import { getOrchestratorIntrospectionSnapshot } from "@/lib/orchestrator-introspection";
 import { prisma } from "@/lib/prisma";
+import { getLocalRuntimeHealth } from "@/lib/runtime-health";
+import { getLocalSystemStatus } from "@/lib/local-system-status";
 
 function countBy(items: Array<{ fields: Record<string, string> }>, field: string) {
   const out: Record<string, number> = {};
@@ -39,9 +41,10 @@ export default async function DashboardPage() {
   const session = await requireSession();
   if (!session) redirect("/signin");
 
-  const dashboardProduct = (process.env.SENTINELSQUAD_DASHBOARD_PRODUCT || "SentinelSquad").trim();
+  const githubBoardEnabled = process.env.SENTINELSQUAD_ENABLE_GITHUB_BOARD === "true";
+  const dashboardProduct = (process.env.SENTINELSQUAD_DASHBOARD_PRODUCT || "sentinelsquad").trim();
   let meta: Awaited<ReturnType<typeof getProjectMeta>> | null = null;
-  let items: Awaited<ReturnType<typeof listProjectItems>> = [];
+  let items: ProjectItem[] = [];
   let emailEvents: Array<{
     id: string;
     status: string;
@@ -112,18 +115,22 @@ export default async function DashboardPage() {
   }> = [];
   let activeAlphaLocks: Awaited<ReturnType<typeof listActiveProjectAlphaLocks>> = [];
   let introspection: Awaited<ReturnType<typeof getOrchestratorIntrospectionSnapshot>> | null = null;
+  let runtimeHealth: Awaited<ReturnType<typeof getLocalRuntimeHealth>> | null = null;
+  let systemStatus: ReturnType<typeof getLocalSystemStatus> = [];
   let introspectionError: string | null = null;
   let boardError: string | null = null;
   let localError: string | null = null;
   const sloWindowStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  try {
-    [meta, items] = await Promise.all([
-      getProjectMeta(),
-      listProjectItems({ limit: 200, product: dashboardProduct })
-    ]);
-  } catch (e) {
-    boardError = e instanceof Error ? e.message : String(e);
+  if (githubBoardEnabled) {
+    try {
+      [meta, items] = await Promise.all([
+        getProjectMeta(),
+        listProjectItems({ limit: 200, product: dashboardProduct })
+      ]);
+    } catch (e) {
+      boardError = e instanceof Error ? e.message : String(e);
+    }
   }
 
   try {
@@ -278,7 +285,11 @@ export default async function DashboardPage() {
 
   if (!localError) {
     try {
-      introspection = await getOrchestratorIntrospectionSnapshot();
+      [introspection, runtimeHealth] = await Promise.all([
+        getOrchestratorIntrospectionSnapshot(),
+        getLocalRuntimeHealth()
+      ]);
+      systemStatus = getLocalSystemStatus();
     } catch (e) {
       introspectionError = e instanceof Error ? e.message : String(e);
     }
@@ -368,20 +379,30 @@ export default async function DashboardPage() {
       subtitle={
         meta
           ? `${meta.title} (${meta.owner}/projects/${meta.number}) · Product=${dashboardProduct}`
-          : "Board connection not configured yet"
+          : githubBoardEnabled
+          ? "GitHub board sync enabled."
+          : "Local squad runtime, telemetry, and operator controls."
       }
     >
-      {boardError ? (
-        <div className="rounded-2xl border border-white/12 bg-white/5 p-5 text-sm text-white/80">
-          <div className="font-semibold">GitHub board read failed</div>
-          <div className="mt-2 font-mono text-xs text-white/70">{boardError}</div>
-          <div className="mt-4 text-white/70">
-            Set `SENTINELSQUAD_GITHUB_TOKEN` and (optionally) `SENTINELSQUAD_GITHUB_PROJECT_OWNER`,
-            `SENTINELSQUAD_GITHUB_PROJECT_NUMBER`.
+      <>
+        {boardError ? (
+          <div className="mb-4 rounded-2xl border border-white/12 bg-white/5 p-5 text-sm text-white/80">
+            <div className="font-semibold">GitHub board sync failed</div>
+            <div className="mt-2 font-mono text-xs opacity-80">{boardError}</div>
+            <div className="mt-4 opacity-85">
+              GitHub is optional here. The local `{`sentinelsquad`}` runtime is still available.
+            </div>
           </div>
-        </div>
-      ) : (
-        <>
+        ) : null}
+        {!githubBoardEnabled ? (
+          <div className="mb-4 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-5 text-sm text-cyan-50">
+            <div className="font-semibold">Local-only mode</div>
+            <div className="mt-2 text-cyan-100/85">
+              This dashboard is using local runtime telemetry only. GitHub is treated as code hosting,
+              not a required runtime dependency.
+            </div>
+          </div>
+        ) : null}
           {localError ? (
             <div className="mb-4 rounded-2xl border border-amber-300/25 bg-amber-200/10 p-5 text-sm text-amber-50">
               <div className="font-semibold">Local runtime read failed</div>
@@ -395,11 +416,59 @@ export default async function DashboardPage() {
           <div className="grid gap-3 md:grid-cols-4">
             <div className="rounded-2xl border border-white/12 bg-white/5 p-5">
               <div className="text-xs uppercase tracking-wide text-white/55">
-                Total cards
+                Local provider
+              </div>
+              <div className="mt-2 text-3xl font-semibold">
+                {runtimeHealth?.providers[0]?.status || "n/a"}
+              </div>
+              <div className="mt-2 text-sm text-white/70">
+                {runtimeHealth?.providers[0]
+                  ? `${runtimeHealth.providers[0].provider} @ ${runtimeHealth.providers[0].endpoint}`
+                  : "No provider health available."}
+              </div>
+              {runtimeHealth?.providers[0]?.error ? (
+                <div className="mt-2 font-mono text-xs text-amber-200/90">
+                  {runtimeHealth.providers[0].error}
+                </div>
+              ) : null}
+            </div>
+            <div className="rounded-2xl border border-white/12 bg-white/5 p-5">
+              <div className="text-xs uppercase tracking-wide text-white/55">
+                Installed models
+              </div>
+              <div className="mt-2 text-3xl font-semibold">
+                {runtimeHealth?.providers[0]?.installedModels.length ?? 0}
+              </div>
+              <div className="mt-2 text-sm text-white/70">
+                {(runtimeHealth?.providers[0]?.installedModels || [])
+                  .slice(0, 2)
+                  .join(", ") || "No local models detected."}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/12 bg-white/5 p-5">
+              <div className="text-xs uppercase tracking-wide text-white/55">
+                Local agents
+              </div>
+              <div className="mt-2 text-3xl font-semibold">
+                {runtimeHealth?.agents.filter((agent) => agent.runtime === "LOCAL").length ?? 0}
+              </div>
+              <div className="mt-2 text-sm text-white/70">
+                {runtimeHealth?.agents
+                  .filter((agent) => agent.runtime === "LOCAL")
+                  .slice(0, 2)
+                  .map((agent) => `${agent.agentKey}:${agent.resolvedModel || agent.configuredModel || "n/a"}`)
+                  .join(" · ") || "No local agents configured."}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/12 bg-white/5 p-5">
+              <div className="text-xs uppercase tracking-wide text-white/55">
+                GitHub board items
               </div>
               <div className="mt-2 text-3xl font-semibold">{items.length}</div>
               <div className="mt-2 text-sm text-white/70">
-                Showing up to 200 items filtered to Product={dashboardProduct}.
+                {githubBoardEnabled
+                  ? `Showing up to 200 items filtered to Product=${dashboardProduct}.`
+                  : "Board sync is disabled in local-only mode."}
               </div>
             </div>
             <div className="rounded-2xl border border-white/12 bg-white/5 p-5">
@@ -453,6 +522,22 @@ export default async function DashboardPage() {
                     </div>
                 ))}
               </div>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-white/12 bg-white/5 p-5">
+            <div className="text-sm font-semibold">Local system services</div>
+            <div className="mt-1 text-xs text-white/60">
+              Native local service posture for app, worker, Ollama, and Postgres.
+            </div>
+            <div className="mt-3 grid gap-2 text-xs md:grid-cols-4">
+              {systemStatus.map((service) => (
+                <div key={service.key} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+                  <div className="font-semibold text-white/80">{service.label}</div>
+                  <div className="mt-1 text-white/65">{service.status}</div>
+                  <div className="mt-1 text-white/50">{service.detail}</div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -1065,8 +1150,7 @@ export default async function DashboardPage() {
               ))}
             </div>
           </div>
-        </>
-      )}
+      </>
     </Shell>
   );
 }

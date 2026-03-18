@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 COMPOSE_FILE="$REPO_ROOT/docker-compose.yml"
 ENV_FILE="$REPO_ROOT/apps/sentinelsquad/.env"
-DB_PORT="${SENTINELSQUAD_DB_PORT:-3579}"
+DB_PORT="${SENTINELSQUAD_DB_PORT:-34765}"
 APP_PORT="${SENTINELSQUAD_APP_PORT:-3577}"
 
 PASS_COUNT=0
