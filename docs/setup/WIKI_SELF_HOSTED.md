@@ -1,6 +1,8 @@
 # Self-hosted wiki (LLD-007)
 
-**Goal:** Run an optional wiki (BookStack) alongside {sovereign}, then expose documentation to agents via MCP.
+**Goal:** Run an optional wiki (**BookStack** and/or **Outline**) alongside {sovereign}, expose pages as MCP resources, and ingest into `ProjectMemory`.
+
+Only **one** wiki backend is active at a time: set **`SOVEREIGN_WIKI_TYPE`** to **`bookstack`** or **`outline`**. If **`SOVEREIGN_WIKI_TYPE` is unset**, the app prefers BookStack when BookStack credentials exist; otherwise Outline when Outline credentials exist.
 
 ## 1. Deploy BookStack (Docker)
 
@@ -15,57 +17,83 @@ docker compose -f docker-compose.wiki.yml up -d
 
 This stack is **independent** of `docker-compose.yml` (Postgres for the app).
 
-## 2. MCP docs server (repo runbooks today)
+## 2. Outline
 
-The app ships **`npm run mcp:docs`** (`apps/sovereign/scripts/mcp-docs-server.js`), which exposes read-only **MCP resources** backed by files in this repo (e.g. `doc://runbooks/getting-started`). No wiki is required for that path.
+Outline is usually **self-hosted or cloud** per [getoutline.com](https://www.getoutline.com/). There is no extra compose file in this repo for it—point **`SOVEREIGN_WIKI_BASE_URL`** at your workspace origin (no trailing slash).
+
+1. Workspace **Settings → API keys** → create a key with **`documents.*`** (or broader) scope.
+2. Set **`SOVEREIGN_WIKI_TYPE=outline`**, **`SOVEREIGN_WIKI_API_KEY`**, and **`SOVEREIGN_WIKI_BASE_URL`**.
+
+MCP URIs use **`doc://wiki/outline/doc/{uuid}`** (document id from the API / app URL).
+
+## 3. MCP docs server (repo runbooks)
+
+**`npm run mcp:docs`** (`apps/sovereign/scripts/mcp-docs-server.js`) always exposes repo files (e.g. `doc://runbooks/getting-started`). Wiki URIs are added when wiki env is configured.
 
 ```bash
 cd apps/sovereign
 npm run mcp:docs
 ```
 
-Send JSON-RPC lines on stdin, e.g. `resources/list` and `resources/read` with `params.uri` set to a listed URI.
+Send JSON-RPC lines on stdin: `resources/list`, `resources/read` with `params.uri`.
 
-## 3. API token (BookStack)
+## 4. API tokens
 
-1. In BookStack, open your user profile → **API Tokens** → create a token (save **Token ID** and **Token Secret**).
-2. Ensure the user’s role has **Access system API** (and permission to read the shelves/books/pages you need).
+### BookStack
 
-## 4. MCP docs + live wiki (`apps/sovereign/.env`)
+1. User profile → **API Tokens** → create token (**Token ID** + **Token Secret**).
+2. Role must allow **Access system API** and read access to content.
 
-Set:
+### Outline
+
+Bearer token from **API keys**; optional **`SOVEREIGN_WIKI_OUTLINE_TOKEN_IN_BODY=1`** if your deployment expects the token in the JSON body instead of `Authorization`.
+
+## 5. Environment (`apps/sovereign/.env`)
+
+### BookStack
 
 | Variable | Example |
 |----------|---------|
-| `SOVEREIGN_WIKI_TYPE` | `bookstack` (default) |
-| `SOVEREIGN_WIKI_BASE_URL` | `http://127.0.0.1:6875` (no trailing slash) |
-| `SOVEREIGN_WIKI_TOKEN_ID` | from BookStack |
-| `SOVEREIGN_WIKI_TOKEN_SECRET` | from BookStack |
-| `SOVEREIGN_WIKI_MCP_PAGE_LIMIT` | optional, default `60` (max 200) — how many pages appear in `resources/list` |
+| `SOVEREIGN_WIKI_TYPE` | `bookstack` |
+| `SOVEREIGN_WIKI_BASE_URL` | `http://127.0.0.1:6875` |
+| `SOVEREIGN_WIKI_TOKEN_ID` / `SOVEREIGN_WIKI_TOKEN_SECRET` | from BookStack |
+| `SOVEREIGN_WIKI_MCP_PAGE_LIMIT` | optional (default 60, max 200) |
 
-Restart **`npm run mcp:docs`**. Then:
+Wiki URIs: **`doc://wiki/bookstack/page/{id}`**. Read path uses **`/api/pages/{id}/export/markdown`** with fallbacks.
 
-- **Static** URIs unchanged: `doc://runbooks/getting-started`, `doc://project/ssot-board`.
-- **Wiki** URIs: `doc://wiki/bookstack/page/{numericId}` (IDs come from BookStack’s API / UI).
+### Outline
 
-`resources/read` uses **`GET /api/pages/{id}/export/markdown`** when available; otherwise it falls back to the page JSON `markdown` / `html` fields.
+| Variable | Example |
+|----------|---------|
+| `SOVEREIGN_WIKI_TYPE` | `outline` |
+| `SOVEREIGN_WIKI_BASE_URL` | `https://wiki.example.com` |
+| `SOVEREIGN_WIKI_API_KEY` | API key |
+| `SOVEREIGN_WIKI_MCP_PAGE_LIMIT` | optional (default 60, max 100 per Outline list) |
 
-If the wiki is down or the token is invalid, `resources/read` returns a JSON-RPC error (`-32002`) with details; `resources/list` still returns repo files and may omit wiki pages (check stderr for list errors).
+RPC: **`POST /api/documents.list`** and **`POST /api/documents.info`**. Requests send **`x-api-version: 1`** so responses include markdown **`text`** when available.
 
-## 5. Ingest a page into `ProjectMemory`
+If the wiki is down or auth fails, `resources/read` returns JSON-RPC **`-32002`**; `resources/list` still returns repo files (wiki portion may be missing—check stderr).
 
-Creates a **PO_PRODUCT** row with `sourceKind=bookstack` and `sourceUrl` pointing at the public page URL.
+## 6. Ingest into `ProjectMemory`
+
+Creates **PO_PRODUCT** rows with **`sourceKind`** `bookstack` or `outline` and **`sourceUrl`**.
+
+**Single page**
 
 ```bash
 cd apps/sovereign
-# Dry run (no DB write):
-node scripts/ingest-wiki-to-memory.js --page-id=123 --project-session-id=<your-session-cuid> --dry-run
-# Write:
-npm run wiki:ingest-page -- --page-id=123 --project-session-id=<your-session-cuid>
+node scripts/ingest-wiki-to-memory.js --page-id=<id> --project-session-id=<cuid> --dry-run
+npm run wiki:ingest-page -- --page-id=<id> --project-session-id=<cuid>
 ```
 
-Requires **`DATABASE_URL`** and the same BookStack env vars as above. Use a **project session id** from your running app (e.g. active product session).
+- BookStack: numeric **page** id.
+- Outline: document **UUID**.
 
-## 6. Outline / other engines
+**Batch** (first N items from wiki list; skips existing rows with the same **`sourceUrl`** in that session)
 
-Only **BookStack** is wired today (`SOVEREIGN_WIKI_TYPE=bookstack`). Other types are ignored until an adapter exists.
+```bash
+npm run wiki:ingest-batch -- --project-session-id=<cuid> --batch-limit=25
+# or --dry-run
+```
+
+Requires **`DATABASE_URL`** and a valid **`projectSessionId`** from the app.

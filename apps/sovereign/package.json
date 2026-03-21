@@ -28,6 +28,7 @@
     "mcp:memory": "node scripts/mcp-memory-server.js",
     "mcp:docs": "node scripts/mcp-docs-server.js",
     "wiki:ingest-page": "node scripts/ingest-wiki-to-memory.js",
+    "wiki:ingest-batch": "node scripts/ingest-wiki-to-memory.js --batch",
     "runtime:doctor": "node scripts/launcher/runtime-doctor.js",
     "memory:verify": "node scripts/verify-semantic-memory.cjs",
     "nexus:bootstrap": "bash scripts/nexus/bootstrap.sh",

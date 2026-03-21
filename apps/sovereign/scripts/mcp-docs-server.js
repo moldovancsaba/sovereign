@@ -1,18 +1,14 @@
 #!/usr/bin/env node
 /**
- * MCP server for repo runbooks + optional BookStack wiki (LLD-007). Read-only resources over stdio.
+ * MCP server for repo runbooks + optional wiki (BookStack or Outline). Read-only resources over stdio.
  * Static: doc://runbooks/…, doc://project/…
- * Wiki (when SOVEREIGN_WIKI_* set): doc://wiki/bookstack/page/{id}
+ * Wiki: doc://wiki/bookstack/page/{id} | doc://wiki/outline/doc/{uuid}
  */
 const path = require("node:path");
 const fs = require("node:fs");
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 const readline = require("node:readline");
-const {
-  isBookStackConfigured,
-  listPages,
-  readPageBodyForMcp
-} = require("./lib/wiki-bookstack");
+const wikiAdapter = require("./lib/wiki-adapter");
 
 function getRepoRoot() {
   const env = process.env.SOVEREIGN_DOCS_REPO_ROOT;
@@ -40,8 +36,6 @@ const RESOURCE_MAP = [
   }
 ];
 
-const WIKI_PAGE_URI_RE = /^doc:\/\/wiki\/bookstack\/page\/(\d+)$/i;
-
 function send(msg) {
   console.log(JSON.stringify(msg));
 }
@@ -58,24 +52,14 @@ function staticResourceMeta() {
 
 async function buildResourcesList() {
   const resources = staticResourceMeta();
-  if (!isBookStackConfigured()) {
+  if (!wikiAdapter.isWikiConfigured()) {
     return { resources };
   }
   try {
-    const pages = await listPages();
-    for (const p of pages) {
-      const id = p.id;
-      if (id == null) continue;
-      resources.push({
-        uri: `doc://wiki/bookstack/page/${id}`,
-        name: `wiki-page-${id}`,
-        title: p.name || `BookStack page ${id}`,
-        mimeType: "text/markdown",
-        description: `BookStack page id ${id}${p.book_id != null ? ` (book ${p.book_id})` : ""}`
-      });
-    }
+    const wikiRows = await wikiAdapter.listWikiResourcesForMcp();
+    resources.push(...wikiRows);
   } catch (err) {
-    console.error("[mcp-docs] BookStack pages list failed:", err?.message || err);
+    console.error("[mcp-docs] wiki resources list failed:", err?.message || err);
   }
   return { resources };
 }
@@ -99,25 +83,8 @@ function readStaticFile(uri) {
 
 async function handleResourcesRead(uri) {
   const u = String(uri || "").trim();
-  const wikiMatch = WIKI_PAGE_URI_RE.exec(u);
-  if (wikiMatch) {
-    if (!isBookStackConfigured()) {
-      return { _badUri: true, uri: u };
-    }
-    try {
-      const { title, text, mimeType } = await readPageBodyForMcp(wikiMatch[1]);
-      return {
-        contents: [
-          {
-            uri: u,
-            mimeType,
-            text: text || `_(empty page: ${title})_`
-          }
-        ]
-      };
-    } catch (err) {
-      return { _wikiError: true, uri: u, message: String(err?.message || err) };
-    }
+  if (/^doc:\/\/wiki\//i.test(u)) {
+    return wikiAdapter.readWikiResourceForMcp(u);
   }
   return readStaticFile(u);
 }
@@ -136,7 +103,7 @@ async function handleRequest(msg) {
           capabilities: {
             resources: { subscribe: false, listChanged: false }
           },
-          serverInfo: { name: "sovereign-docs", version: "1.1.0" }
+          serverInfo: { name: "sovereign-docs", version: "1.2.0" }
         }
       });
       return;

@@ -64,14 +64,14 @@ const FLOWS: Array<{
   {
     title: "Run the MCP docs server (runbooks)",
     description:
-      "LLD-007 slice: read-only MCP resources from repo docs (e.g. doc://runbooks/getting-started, doc://project/ssot-board). Optional BookStack: see docs/setup/WIKI_SELF_HOSTED.md.",
+      "LLD-007: repo docs (doc://runbooks/…, doc://project/…) plus optional BookStack or Outline wiki (see docs/setup/WIKI_SELF_HOSTED.md).",
     commands: [
       "cd /Users/moldovancsaba/Projects/sovereign/apps/sovereign",
       "npm run mcp:docs"
     ],
     cwd: "apps/sovereign",
     notes:
-      "Send JSON-RPC lines on stdin: resources/list, resources/read with params.uri. Override repo root with SOVEREIGN_DOCS_REPO_ROOT. For live BookStack pages, set SOVEREIGN_WIKI_BASE_URL + TOKEN_ID + TOKEN_SECRET (see docs/setup/WIKI_SELF_HOSTED.md); URIs doc://wiki/bookstack/page/{id}."
+      "Send JSON-RPC on stdin: resources/list, resources/read. Repo: SOVEREIGN_DOCS_REPO_ROOT. Wiki: SOVEREIGN_WIKI_TYPE=bookstack|outline + creds in .env.example; URIs doc://wiki/bookstack/page/{id} or doc://wiki/outline/doc/{uuid}."
   },
   {
     title: "Run database migrations",

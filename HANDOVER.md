@@ -26,7 +26,7 @@
 - local runtime doctor, local system-service status, and dashboard health
 - durable project-memory capture foundation
 - **LLD-006 (foundation + follow-through):** `ProjectMemory` kinds + provenance + `vector(768)` embedding; **HNSW** partial index on `embedding` (migration `20260321103000_project_memory_embedding_hnsw`); `POST /api/memory/search` (lexical + optional semantic). **MCP:** `npm run mcp:memory` — tools + **resources** (`sovereign-memory://docs/operator-guide`, `sovereign-memory://memory/{id}`). **Worker:** tool protocol `memory.*`; **prompt memory** default **THREAD**; opt-in **PROJECT_SESSION** via task `payload.memory.scope` (durable `ProjectMemory` lexical match for active project session). ADR: [docs/architecture/0004-memory-pgvector-embedding.md](docs/architecture/0004-memory-pgvector-embedding.md). Remaining (optional): semantic snippets in worker prompt.
-- **LLD-007:** `npm run mcp:docs` — repo URIs (`doc://runbooks/getting-started`, `doc://project/ssot-board`) plus optional **BookStack** live pages: set `SOVEREIGN_WIKI_BASE_URL`, `SOVEREIGN_WIKI_TOKEN_ID`, `SOVEREIGN_WIKI_TOKEN_SECRET` → `resources/list` merges `/api/pages`; `doc://wiki/bookstack/page/{id}` uses `/api/pages/{id}/export/markdown` (fallback: page JSON). **Ingest:** `npm run wiki:ingest-page -- --page-id=… --project-session-id=…` → `ProjectMemory` with `sourceKind=bookstack`, `sourceUrl`. Docs: [docs/setup/WIKI_SELF_HOSTED.md](docs/setup/WIKI_SELF_HOSTED.md), [docker-compose.wiki.yml](docker-compose.wiki.yml). **Still optional / follow-up:** Outline adapter; PO closes [#443](https://github.com/moldovancsaba/mvp-factory-control/issues/443) when AC satisfied.
+- **LLD-007:** `npm run mcp:docs` — repo URIs plus **BookStack** or **Outline** (`SOVEREIGN_WIKI_TYPE`, creds in [.env.example](apps/sovereign/.env.example)): `doc://wiki/bookstack/page/{id}`, `doc://wiki/outline/doc/{uuid}`. **Ingest:** `wiki:ingest-page`, **`wiki:ingest-batch`** (skips duplicate `sourceUrl` per session). Docs: [docs/setup/WIKI_SELF_HOSTED.md](docs/setup/WIKI_SELF_HOSTED.md). PO closes [#443](https://github.com/moldovancsaba/mvp-factory-control/issues/443) when AC satisfied.
 - **Operator UI refresh:** Shell privileges Chat, `{sovereign}` / Sovereign copy, updated tokens (`globals.css`), page subtitles aligned to [docs/UI_UX_STANDARDS.md](docs/UI_UX_STANDARDS.md); Theia-native shell remains future (LLD-009)
 - **Local backlog:** API, Kanban UI (read-only at `/backlog`), worker backlog tools (`backlog.list_boards`, `backlog.list_items`, `backlog.get_item`, `backlog.create_item`, `backlog.update_item`, `backlog.add_feedback`), MCP backlog server (stdio) — run: `npm run mcp:backlog` from `apps/sovereign`
 - **Final-judgement (JUDGE):** JUDGEMENT ChatEvent, task fields (`judgementVote`, `judgementConfidence`, `judgementReason`, `escalatedAt`), transcript display and escalation in chat UI
@@ -39,7 +39,7 @@
 - memory retrieval, annotation, and review
 - complete provider abstraction beyond the current Ollama-first path
 - first-public OSS packaging polish
-- **LLD-007** remainder: **Outline** (or other) wiki adapter; batch / scheduled ingest beyond single-page CLI
+- **LLD-007** remainder: scheduled / cron batch ingest; optional extra wiki engines beyond BookStack + Outline
 - LLD-001 rename: **done on board** — [mvp-factory-control#437](https://github.com/moldovancsaba/mvp-factory-control/issues/437) closed **2026-03-21**. Runtime uses **`SOVEREIGN_*`** env vars only (no `SENTINELSQUAD_*` fallbacks), **`.sovereign/`** settings paths only, NextAuth dev provider **`sovereign-dev`** only, and tool-call protocol **`sovereign.tool-call`** only. LaunchAgent install still **boots out** `com.sentinelsquad.*` labels for machines that had the old agents.
 
 ---
@@ -77,7 +77,8 @@ From app dir (e.g. `apps/sovereign`):
 npx prisma migrate status
 node scripts/mcp-backlog-server.js   # then send one JSON-RPC line to stdin, e.g. {"jsonrpc":"2.0","id":1,"method":"tools/list"}
 npm run mcp:docs   # resources/list + resources/read (doc://…); BookStack live if SOVEREIGN_WIKI_* set
-npm run wiki:ingest-page -- --page-id=1 --project-session-id=<cuid>   # BookStack → ProjectMemory
+npm run wiki:ingest-page -- --page-id=1 --project-session-id=<cuid>
+npm run wiki:ingest-batch -- --project-session-id=<cuid> --batch-limit=25
 ```
 
 **Other environments / rollout:** from repo root, `npm run prisma:migrate:deploy` with valid `DATABASE_URL` (pgvector Postgres). Docker: `./scripts/sovereign-docker-bootstrap.sh` applies migrations automatically.
@@ -97,6 +98,7 @@ npm run wiki:ingest-page -- --page-id=1 --project-session-id=<cuid>   # BookStac
 
 Each entry below is appended per READMEDEV rule 13. Format: timestamp + agent label, branch/commit, objective, what changed, files touched, validation, known issues/next actions.
 
+- **2026-03-24 (local)** — **LLD-007 Outline + batch ingest:** [wiki-outline.js](apps/sovereign/scripts/lib/wiki-outline.js), [wiki-adapter.js](apps/sovereign/scripts/lib/wiki-adapter.js); MCP `doc://wiki/outline/doc/{uuid}`; `wiki:ingest-batch` + dedupe by `sourceUrl`; `.env.example` + [WIKI_SELF_HOSTED.md](docs/setup/WIKI_SELF_HOSTED.md). **Validation:** `npm run verify`.
 - **2026-03-24 (local)** — **LLD-007 BookStack bridge + ingest:** [apps/sovereign/scripts/lib/wiki-bookstack.js](apps/sovereign/scripts/lib/wiki-bookstack.js) (REST list/read + public URL); [mcp-docs-server.js](apps/sovereign/scripts/mcp-docs-server.js) `doc://wiki/bookstack/page/{id}`; [ingest-wiki-to-memory.js](apps/sovereign/scripts/ingest-wiki-to-memory.js) + `wiki:ingest-page`; `.env.example` + [WIKI_SELF_HOSTED.md](docs/setup/WIKI_SELF_HOSTED.md) + Master Plan note. **Validation:** `npm run verify`.
 - **2026-03-24 (local)** — **LLD-007 slice (MCP docs + wiki deploy doc):** Added `npm run mcp:docs` ([apps/sovereign/scripts/mcp-docs-server.js](apps/sovereign/scripts/mcp-docs-server.js)) with `doc://runbooks/getting-started` and `doc://project/ssot-board`; [docs/runbooks/getting-started.md](docs/runbooks/getting-started.md); [docker-compose.wiki.yml](docker-compose.wiki.yml) + [docs/setup/WIKI_SELF_HOSTED.md](docs/setup/WIKI_SELF_HOSTED.md); Run page flow; root `verify` runs [e2e:mcp-docs](apps/sovereign/scripts/e2e/sovereign-mcp-docs.e2e.js). **Validation:** `npm run verify`.
 - **2026-03-23 (local)** — **Board mirror for hybrid orchestrator v1:** Opened [mvp-factory-control#447](https://github.com/moldovancsaba/mvp-factory-control/issues/447) (PO acceptance + AC); added to **MVP Factory Board** (GitHub Projects #1). Updated [docs/SOVEREIGN_PROJECT_BOARD_SSOT.md](docs/SOVEREIGN_PROJECT_BOARD_SSOT.md) §2.2, §3.1, §4.2; [HANDOVER.md](HANDOVER.md) operator truth + Next Priority. **Validation:** `gh issue view` / `gh project item-add` spot-check.
