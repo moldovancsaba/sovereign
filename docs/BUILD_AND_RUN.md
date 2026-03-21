@@ -1,10 +1,10 @@
 # Build And Run
 
-This document defines the supported local build and launch flows for `{sentinelsquad}`.
+This document defines the supported local build and launch flows for `{sovereign}`.
 
 ## Runtime Assumptions
 
-`{sentinelsquad}` is a local-first desktop product.
+`{sovereign}` is a local-first desktop product.
 
 Supported local foundations:
 
@@ -41,36 +41,35 @@ Use this when developing or debugging the product directly.
 #### Start the database
 
 ```bash
-cd /Users/moldovancsaba/Projects/sentinelsquad
+cd /Users/moldovancsaba/Projects/sovereign
 npm run db:up
 ```
 
 #### Prepare environment
 
 ```bash
-cd /Users/moldovancsaba/Projects/sentinelsquad/apps/sentinelsquad
+cd /Users/moldovancsaba/Projects/sovereign/apps/sovereign
 cp .env.example .env
 ```
 
 #### Install and generate Prisma client
 
 ```bash
-cd /Users/moldovancsaba/Projects/sentinelsquad
+cd /Users/moldovancsaba/Projects/sovereign
 npm run install:app
 npm run prisma:generate
 ```
 
 #### Run migrations
 
-```bash
-cd /Users/moldovancsaba/Projects/sentinelsquad/apps/sentinelsquad
-npx prisma migrate dev
-```
+**Dev:** `cd apps/sovereign && npx prisma migrate dev`
+
+**Deploy-style (Docker, CI, shared DB):** from repo root, `npm run prisma:migrate:deploy` (after `db:up` if using compose). Same command CI uses via `sovereign-docker-bootstrap.sh`.
 
 #### Start the app
 
 ```bash
-cd /Users/moldovancsaba/Projects/sentinelsquad
+cd /Users/moldovancsaba/Projects/sovereign
 npm run dev
 ```
 
@@ -79,7 +78,7 @@ npm run dev
 In a second terminal:
 
 ```bash
-cd /Users/moldovancsaba/Projects/sentinelsquad
+cd /Users/moldovancsaba/Projects/sovereign
 npm run worker
 ```
 
@@ -93,7 +92,7 @@ Open:
 Use this when you want the local app, worker, and Ollama integration managed by launchd.
 
 ```bash
-cd /Users/moldovancsaba/Projects/sentinelsquad
+cd /Users/moldovancsaba/Projects/sovereign
 npm run service:install
 npm run service:status
 ```
@@ -103,9 +102,9 @@ npm run service:status
 Use this for the product-style local launch experience.
 
 ```bash
-cd /Users/moldovancsaba/Projects/sentinelsquad
+cd /Users/moldovancsaba/Projects/sovereign
 npm run desktop:install-app
-open /Users/moldovancsaba/Applications/SentinelSquad.app
+open /Users/moldovancsaba/Applications/Sovereign.app
 ```
 
 ## Theia Desktop Path
@@ -115,13 +114,13 @@ Theia is the target shell foundation, not the current default end-user shell.
 Bootstrap path:
 
 ```bash
-cd /Users/moldovancsaba/Projects/sentinelsquad
+cd /Users/moldovancsaba/Projects/sovereign
 npm run desktop:bootstrap
 npm run desktop:build
 npm run desktop:start
 ```
 
-This exists to evolve the desktop shell architecture. The core orchestration, memory, and task system still belong to `{sentinelsquad}`, and the primary current UX still comes from the product app launched by the native macOS wrapper.
+This exists to evolve the desktop shell architecture. The core orchestration, memory, and task system still belong to `{sovereign}`, and the primary current UX still comes from the product app launched by the native macOS wrapper.
 
 ## Verification
 
@@ -150,7 +149,7 @@ Symptoms:
 Fix:
 
 ```bash
-cd /Users/moldovancsaba/Projects/sentinelsquad
+cd /Users/moldovancsaba/Projects/sovereign
 npm run db:up
 ```
 
@@ -164,15 +163,15 @@ Check:
 
 The runtime layer should resolve an installed model instead of failing on a missing preferred alias, but if startup is broken, inspect:
 
-- `apps/sentinelsquad/.sentinelsquad/daemon-logs/worker.out.log`
-- `apps/sentinelsquad/.sentinelsquad/daemon-logs/worker.err.log`
+- `apps/sovereign/.sovereign/daemon-logs/worker.out.log` (or legacy `.sentinelsquad/` if not migrated)
+- `apps/sovereign/.sovereign/daemon-logs/worker.err.log`
 
 ### Dashboard still shows GitHub-related messaging
 
-That is a documentation or UI bug, not an intended operating requirement. `{sentinelsquad}` is a local-only product by default and should remain usable without GitHub runtime access.
+That is a documentation or UI bug, not an intended operating requirement. `{sovereign}` is a local-only product by default and should remain usable without GitHub runtime access.
 
 ## Related Documents
 
-- [`/Users/moldovancsaba/Projects/sentinelsquad/docs/SETUP.md`](/Users/moldovancsaba/Projects/sentinelsquad/docs/SETUP.md)
-- [`/Users/moldovancsaba/Projects/sentinelsquad/docs/architecture/0001-theia-desktop-foundation.md`](/Users/moldovancsaba/Projects/sentinelsquad/docs/architecture/0001-theia-desktop-foundation.md)
-- [`/Users/moldovancsaba/Projects/sentinelsquad/docs/architecture/0002-rock-solid-open-source-hardening.md`](/Users/moldovancsaba/Projects/sentinelsquad/docs/architecture/0002-rock-solid-open-source-hardening.md)
+- [`/Users/moldovancsaba/Projects/sovereign/docs/SETUP.md`](/Users/moldovancsaba/Projects/sovereign/docs/SETUP.md)
+- [`/Users/moldovancsaba/Projects/sovereign/docs/architecture/0001-theia-desktop-foundation.md`](/Users/moldovancsaba/Projects/sovereign/docs/architecture/0001-theia-desktop-foundation.md)
+- [`/Users/moldovancsaba/Projects/sovereign/docs/architecture/0002-rock-solid-open-source-hardening.md`](/Users/moldovancsaba/Projects/sovereign/docs/architecture/0002-rock-solid-open-source-hardening.md)

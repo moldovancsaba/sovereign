@@ -1,0 +1,46 @@
+name: Sovereign DLP Guardrail Gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "apps/sovereign/scripts/lib/output-dlp.js"
+      - "apps/sovereign/scripts/worker.js"
+      - "apps/sovereign/scripts/e2e/sovereign-dlp-guardrail.e2e.js"
+      - "apps/sovereign/package.json"
+      - "apps/sovereign/package-lock.json"
+      - ".github/workflows/sovereign-dlp-guardrail-gate.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/sovereign/scripts/lib/output-dlp.js"
+      - "apps/sovereign/scripts/worker.js"
+      - "apps/sovereign/scripts/e2e/sovereign-dlp-guardrail.e2e.js"
+      - "apps/sovereign/package.json"
+      - "apps/sovereign/package-lock.json"
+      - ".github/workflows/sovereign-dlp-guardrail-gate.yml"
+
+jobs:
+  dlp-guardrail-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/sovereign
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/sovereign/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run DLP guardrail harness
+        run: npm run e2e:dlp-guardrail

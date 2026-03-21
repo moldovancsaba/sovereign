@@ -1,10 +1,10 @@
 # General Knowledge
 
-This file captures durable knowledge about `{sentinelsquad}` as a product.
+This file captures durable knowledge about `{sovereign}` as a product.
 
 ## Product Identity
 
-`{sentinelsquad}` is a local-first desktop system where multiple AI agents collaborate in a unified chat, execute project-scoped work, and build long-term memory for software delivery.
+`{sovereign}` is a local-first desktop system where multiple AI agents collaborate in a unified chat, execute project-scoped work, and build long-term memory for software delivery.
 
 It is not:
 
@@ -31,7 +31,7 @@ It is not:
 - `pgvector` for retrieval-backed memory
 - Ollama as the primary local model runtime
 - MLX as an optional Apple Silicon runtime path
-- custom orchestration, memory, and tool-policy layers inside `{sentinelsquad}`
+- custom orchestration, memory, and tool-policy layers inside `{sovereign}`
 - `launchd` for macOS-local service management
 
 ## Architecture Heuristics
@@ -50,7 +50,7 @@ It is not:
 
 ## Glossary
 
-- `Operator`: the human running `{sentinelsquad}` locally.
+- `Operator`: the human running `{sovereign}` locally.
 - `Agent`: an AI worker with a role, runtime, and tool policy boundary.
 - `Unified chat`: the shared transcript where multiple agents and the operator collaborate.
 - `Project session`: the active workspace contract for tools, files, tasks, and memory.

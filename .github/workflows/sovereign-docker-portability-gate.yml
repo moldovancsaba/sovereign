@@ -1,0 +1,62 @@
+name: Sovereign Docker Portability Gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "apps/sovereign/**"
+      - "docker-compose.yml"
+      - "scripts/sovereign-docker-*.sh"
+      - "docs/SETUP.md"
+      - "package.json"
+      - ".github/workflows/sovereign-docker-portability-gate.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/sovereign/**"
+      - "docker-compose.yml"
+      - "scripts/sovereign-docker-*.sh"
+      - "docs/SETUP.md"
+      - "package.json"
+      - ".github/workflows/sovereign-docker-portability-gate.yml"
+
+jobs:
+  portability-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Ensure scripts executable
+        run: |
+          chmod +x scripts/sovereign-docker-preflight.sh
+          chmod +x scripts/sovereign-docker-bootstrap.sh
+          chmod +x scripts/sovereign-docker-portability-gate.sh
+
+      - name: Provision CI env file
+        run: |
+          cat > apps/sovereign/.env <<'EOF'
+          NEXTAUTH_URL=http://localhost:3577
+          NEXTAUTH_SECRET=ci-nextauth-secret
+          GITHUB_CLIENT_ID=ci-github-client-id
+          GITHUB_CLIENT_SECRET=ci-github-client-secret
+          DATABASE_URL=postgresql://sovereign:sovereign@localhost:34765/sovereign?schema=public
+          SOVEREIGN_GITHUB_TOKEN=ci-placeholder-token
+          SOVEREIGN_GITHUB_PROJECT_OWNER=moldovancsaba
+          SOVEREIGN_GITHUB_PROJECT_NUMBER=1
+          SOVEREIGN_TASK_REPO_OWNER=moldovancsaba
+          SOVEREIGN_TASK_REPO_NAME=sovereign
+          EOF
+
+      - name: Run portability gate
+        env:
+          SOVEREIGN_DB_PORT: "55432"
+          SOVEREIGN_APP_PORT: "3107"
+          SENTINELSQUAD_DB_PORT: "55432"
+          SENTINELSQUAD_APP_PORT: "3107"
+          NEXTAUTH_URL: "http://localhost:3107"
+          SOVEREIGN_DOCKER_HEALTH_TIMEOUT_SECONDS: "180"
+          SENTINELSQUAD_DOCKER_HEALTH_TIMEOUT_SECONDS: "180"
+        run: ./scripts/sovereign-docker-portability-gate.sh

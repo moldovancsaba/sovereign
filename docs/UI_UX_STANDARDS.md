@@ -1,10 +1,10 @@
 # UI/UX Standards
 
-These are the UI and UX standards for `{sentinelsquad}`.
+These are the UI and UX standards for `{sovereign}`.
 
 ## Product Context
 
-`{sentinelsquad}` is an operator-facing desktop product for multi-agent work. The UI should feel like a serious local control surface for a team of AI workers, not like a toy chatbot and not like a generic admin dashboard.
+`{sovereign}` is an operator-facing desktop product for multi-agent work. The UI should feel like a serious local control surface for a team of AI workers, not like a toy chatbot and not like a generic admin dashboard.
 
 ## Core Principles
 

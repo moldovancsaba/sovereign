@@ -1,0 +1,54 @@
+name: Sovereign Provenance Identity Gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "apps/sovereign/src/lib/tasks.ts"
+      - "apps/sovereign/src/lib/email-ingress.ts"
+      - "apps/sovereign/src/app/chat/actions.ts"
+      - "apps/sovereign/src/app/issues/[number]/actions.ts"
+      - "apps/sovereign/scripts/worker.js"
+      - "apps/sovereign/scripts/lib/task-provenance.js"
+      - "apps/sovereign/scripts/e2e/sovereign-provenance-identity.e2e.js"
+      - "apps/sovereign/package.json"
+      - "apps/sovereign/package-lock.json"
+      - ".github/workflows/sovereign-provenance-identity-gate.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/sovereign/src/lib/tasks.ts"
+      - "apps/sovereign/src/lib/email-ingress.ts"
+      - "apps/sovereign/src/app/chat/actions.ts"
+      - "apps/sovereign/src/app/issues/[number]/actions.ts"
+      - "apps/sovereign/scripts/worker.js"
+      - "apps/sovereign/scripts/lib/task-provenance.js"
+      - "apps/sovereign/scripts/e2e/sovereign-provenance-identity.e2e.js"
+      - "apps/sovereign/package.json"
+      - "apps/sovereign/package-lock.json"
+      - ".github/workflows/sovereign-provenance-identity-gate.yml"
+
+jobs:
+  provenance-identity-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/sovereign
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/sovereign/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run provenance identity regression harness
+        run: npm run e2e:provenance

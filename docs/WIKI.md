@@ -1,6 +1,6 @@
 # Wiki
 
-This is the navigation hub for `{sentinelsquad}` documentation.
+This is the navigation hub for `{sovereign}` documentation.
 
 ## Start Here
 
@@ -8,17 +8,32 @@ This is the navigation hub for `{sentinelsquad}` documentation.
 - [../READMEDEV.md](../READMEDEV.md)
 - [../CONTRIBUTING.md](../CONTRIBUTING.md)
 
+## Contract and Plan (sovereign)
+
+- [SOVEREIGN_AGENT_TEAM_CONTRACT.md](SOVEREIGN_AGENT_TEAM_CONTRACT.md) — unbreakable contract between PO and Agent Team
+- [SOVEREIGN_MASTER_PLAN_AND_LLD.md](SOVEREIGN_MASTER_PLAN_AND_LLD.md) — what to do, when, LLD issues for mvp-factory-control
+- [SOVEREIGN_PROJECT_BOARD_SSOT.md](SOVEREIGN_PROJECT_BOARD_SSOT.md) — **SSOT for the project board**: canonical deliverables, order, mapping to mvp-factory-control, delivery checklist
+- [SOVEREIGN_ISSUE_TEMPLATE_MVP_FACTORY_CONTROL.md](SOVEREIGN_ISSUE_TEMPLATE_MVP_FACTORY_CONTROL.md) — ready-to-paste issue title + body for each LLD (mvp-factory-control)
+- [SOVEREIGN_DELIVERY_PLAYBOOK.md](SOVEREIGN_DELIVERY_PLAYBOOK.md) — one-page delivery rhythm: phases, sprint steps, when to update which doc
+- [RENAME_TO_SOVEREIGN.md](RENAME_TO_SOVEREIGN.md) — product rename checklist (sentinelsquad → sovereign)
+- [HLD_FEEDBACK_AND_GAP_ANALYSIS.md](HLD_FEEDBACK_AND_GAP_ANALYSIS.md) — old HLD vs current design, gaps, feedback
+- [PRODUCT_BOARD_AND_TRIAGE.md](PRODUCT_BOARD_AND_TRIAGE.md) — pipeline IDEABANK→DONE, triage mapping, time language (sooner/later/now)
+
 ## Architecture
 
 - [architecture/0001-theia-desktop-foundation.md](architecture/0001-theia-desktop-foundation.md)
 - [architecture/0002-rock-solid-open-source-hardening.md](architecture/0002-rock-solid-open-source-hardening.md)
-- [SENTINELSQUAD_DELIVERY_ROADMAP.md](SENTINELSQUAD_DELIVERY_ROADMAP.md)
+- [architecture/0003-local-backlog-and-po-experience.md](architecture/0003-local-backlog-and-po-experience.md)
+- [architecture/0004-memory-pgvector-embedding.md](architecture/0004-memory-pgvector-embedding.md)
+- [architecture/theia-upstream-and-future-proof.md](architecture/theia-upstream-and-future-proof.md)
+- [SOVEREIGN_DELIVERY_ROADMAP.md](SOVEREIGN_DELIVERY_ROADMAP.md)
 
 ## Operator And Setup Docs
 
 - [SETUP.md](SETUP.md)
 - [BUILD_AND_RUN.md](BUILD_AND_RUN.md)
 - [GENERAL_KNOWLEDGE.md](GENERAL_KNOWLEDGE.md)
+- [OBSOLETE_AND_LEFTOVER_AUDIT.md](OBSOLETE_AND_LEFTOVER_AUDIT.md) — legacy paths, rename candidates, compat identifiers (SentinelSquad leftovers)
 
 ## Standards And Shared Guidance
 
@@ -30,13 +45,22 @@ This is the navigation hub for `{sentinelsquad}` documentation.
 
 ## Product Context
 
-- [projects/sentinelsquad-product.md](projects/sentinelsquad-product.md)
+- [projects/sovereign-product.md](projects/sovereign-product.md)
 - [GENERAL_KNOWLEDGE.md](GENERAL_KNOWLEDGE.md)
 
-## Documentation Use Rule
+## Documentation Use Rule (how to use these docs)
 
-- `README.md`, `BUILD_AND_RUN.md`, `SETUP.md`, and `HANDOVER.md` define implemented operator truth
-- architecture docs define system direction and target architecture
-- roadmap docs define delivery phases and stage labels
-- product docs define what `{sentinelsquad}` is
-- standards docs define implementation discipline
+| Need | Document(s) |
+|------|-------------|
+| **Law** — invariants, obligations, change process | [SOVEREIGN_AGENT_TEAM_CONTRACT.md](SOVEREIGN_AGENT_TEAM_CONTRACT.md) |
+| **Plan** — what we do, when, deliverable issues (LLD) | [SOVEREIGN_MASTER_PLAN_AND_LLD.md](SOVEREIGN_MASTER_PLAN_AND_LLD.md) |
+| **Project board SSOT** — canonical issues, order, mapping to mvp-factory-control | [SOVEREIGN_PROJECT_BOARD_SSOT.md](SOVEREIGN_PROJECT_BOARD_SSOT.md) |
+| **Delivery rhythm** — phases, sprint steps, when to update which doc | [SOVEREIGN_DELIVERY_PLAYBOOK.md](SOVEREIGN_DELIVERY_PLAYBOOK.md) |
+| **Issue template** — ready-to-paste bodies for mvp-factory-control | [SOVEREIGN_ISSUE_TEMPLATE_MVP_FACTORY_CONTROL.md](SOVEREIGN_ISSUE_TEMPLATE_MVP_FACTORY_CONTROL.md) |
+| **Product board** — backlog pipeline, triage (IDEABANK/CRITICAL), time language (sooner/later/now) | [PRODUCT_BOARD_AND_TRIAGE.md](PRODUCT_BOARD_AND_TRIAGE.md) |
+| **Architecture** — ADRs, Theia, local backlog, hardening | [architecture/](architecture/) |
+| **Operator truth** — what is implemented, how to run | `README.md`, `BUILD_AND_RUN.md`, `SETUP.md`, `HANDOVER.md` |
+| **Hygiene / leftovers** — obsolete names, safe vs risky cleanup | [OBSOLETE_AND_LEFTOVER_AUDIT.md](OBSOLETE_AND_LEFTOVER_AUDIT.md) |
+| **Delivery phases** | [SOVEREIGN_DELIVERY_ROADMAP.md](SOVEREIGN_DELIVERY_ROADMAP.md) |
+| **What the product is** | Product docs; brand is `{sovereign}` |
+| **Implementation discipline** | CODING_STANDARDS, UI_UX_STANDARDS, RULES, AGENT_PROMPTS, EXECUTABLE_PROMPT_PACKAGE |

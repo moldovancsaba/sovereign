@@ -1,0 +1,46 @@
+name: Sovereign Filesystem Safety Gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "apps/sovereign/scripts/e2e/sovereign-filesystem-safety.e2e.js"
+      - "apps/sovereign/scripts/lib/tool-filesystem.js"
+      - "apps/sovereign/scripts/lib/tool-command-policy.js"
+      - "apps/sovereign/package.json"
+      - "apps/sovereign/package-lock.json"
+      - ".github/workflows/sovereign-filesystem-safety-gate.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/sovereign/scripts/e2e/sovereign-filesystem-safety.e2e.js"
+      - "apps/sovereign/scripts/lib/tool-filesystem.js"
+      - "apps/sovereign/scripts/lib/tool-command-policy.js"
+      - "apps/sovereign/package.json"
+      - "apps/sovereign/package-lock.json"
+      - ".github/workflows/sovereign-filesystem-safety-gate.yml"
+
+jobs:
+  filesystem-safety-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/sovereign
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/sovereign/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run filesystem safety regression harness
+        run: npm run e2e:filesystem-safety

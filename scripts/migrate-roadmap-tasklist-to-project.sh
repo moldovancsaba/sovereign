@@ -4,7 +4,7 @@
 # - TASKLIST items not broken down (scoping/define) → new issues, Status = Backlog
 # - TASKLIST items broken down to actionable deliverables → new issues, Status = Ready
 # Existing issue #2 is P2 #3 (Dashboard/course pages); we set it to Ready, do not duplicate.
-# Requires: gh (with project scope), jq. Run from sentinelsquad-control repo root.
+# Requires: gh (with project scope), jq. Run from sovereign repo root.
 # Usage: ./scripts/migrate-roadmap-tasklist-to-project.sh [--dry-run]
 #         ./scripts/migrate-roadmap-tasklist-to-project.sh [--skip-roadmap] [--skip-backlog] [--skip-ready-first N]
 # To resume after partial run: --skip-roadmap --skip-backlog --skip-ready-first 3
@@ -12,7 +12,7 @@
 set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-REPO="${MVP_REPO:-sentinelsquad-control}"
+REPO="${MVP_REPO:-sovereign}"
 OWNER="${MVP_PROJECT_OWNER:-moldovancsaba}"
 DRY_RUN=""
 SKIP_ROADMAP=""
@@ -59,7 +59,7 @@ set_board_status() {
     echo "[DRY-RUN] Would set issue #$num Status=$status"
     return 0
   fi
-  "$SCRIPT_DIR/sentinelsquad-set-project-fields.sh" "$num" --status "$status" --product amanoba
+  "$SCRIPT_DIR/sovereign-set-project-fields.sh" "$num" --status "$status" --product amanoba
 }
 
 # --- 1) ROADMAP items → Status = Roadmap ---
@@ -180,7 +180,7 @@ done
 # --- 4) Set existing issue #2 (P2 #3 Dashboard) to Ready ---
 echo "=== Setting existing issue #2 (P2 #3 Dashboard) to Ready ==="
 if [[ -z "$DRY_RUN" ]]; then
-  "$SCRIPT_DIR/sentinelsquad-set-project-fields.sh" 2 --status Ready --product amanoba
+  "$SCRIPT_DIR/sovereign-set-project-fields.sh" 2 --status Ready --product amanoba
 else
   echo "[DRY-RUN] Would set issue #2 Status=Ready"
 fi

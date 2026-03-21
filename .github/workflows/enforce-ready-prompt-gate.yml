@@ -13,17 +13,17 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Ensure scripts executable
-        run: chmod +x scripts/sentinelsquad-ready-gate-audit.sh scripts/sentinelsquad-validate-prompt-package.js
+        run: chmod +x scripts/sovereign-ready-gate-audit.sh scripts/sovereign-validate-prompt-package.js
 
       - name: Enforce gate
         env:
           GH_TOKEN: ${{ secrets.MVP_PROJECT_TOKEN }}
           MVP_PROJECT_OWNER: moldovancsaba
           MVP_PROJECT_NUMBER: "1"
-          MVP_REPO: sentinelsquad-control
+          MVP_REPO: sovereign
         run: |
           if [ -z "$GH_TOKEN" ]; then
             echo "::warning::MVP_PROJECT_TOKEN not configured. Skipping prompt gate enforcement."
             exit 0
           fi
-          ./scripts/sentinelsquad-ready-gate-audit.sh --apply --comment
+          ./scripts/sovereign-ready-gate-audit.sh --apply --comment

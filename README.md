@@ -1,6 +1,6 @@
-# {sentinelsquad}
+# {sovereign}
 
-`{sentinelsquad}` is a local-first desktop product for multi-agent software delivery.
+`{sovereign}` is a local-first desktop product for multi-agent software delivery.
 
 The product goal is not “one coding assistant in an editor.” The goal is a company operating system where multiple AI agents collaborate in one transcript, execute bounded work inside real project workspaces, and build durable project memory over time.
 
@@ -35,7 +35,7 @@ What is target architecture, not shipped baseline:
 
 ## Recommended Stack
 
-The target delivery stack for `{sentinelsquad}` is:
+The target delivery stack for `{sovereign}` is:
 
 - Eclipse Theia Desktop for the IDE shell
 - Electron for desktop packaging
@@ -46,15 +46,15 @@ The target delivery stack for `{sentinelsquad}` is:
 - Ollama as the default local model runtime
 - MLX as the optional Apple Silicon runtime
 - launchd for macOS background services
-- custom `{sentinelsquad}` orchestration, memory, policy, and tool-execution layers
+- custom `{sovereign}` orchestration, memory, policy, and tool-execution layers
 
 GitHub is for source hosting and collaboration. It is not a required runtime dependency for the local product.
 
 ## Repository
 
-- GitHub: [moldovancsaba/sentinelsquad](https://github.com/moldovancsaba/sentinelsquad)
-- Local root: `/Users/moldovancsaba/Projects/sentinelsquad`
-- App: [`/Users/moldovancsaba/Projects/sentinelsquad/apps/sentinelsquad`](/Users/moldovancsaba/Projects/sentinelsquad/apps/sentinelsquad)
+- GitHub: [moldovancsaba/sovereign](https://github.com/moldovancsaba/sovereign)
+- Local root: `/Users/moldovancsaba/Projects/sovereign`
+- App: [`/Users/moldovancsaba/Projects/sovereign/apps/sovereign`](/Users/moldovancsaba/Projects/sovereign/apps/sovereign)
 - Product version: `1.0.1`
 
 ## Repository Shape
@@ -62,7 +62,7 @@ GitHub is for source hosting and collaboration. It is not a required runtime dep
 ```text
 .
 ├── apps/
-│   └── sentinelsquad/   # app, worker, Prisma schema, launcher scripts
+│   └── sovereign/   # app, worker, Prisma schema, launcher scripts
 ├── docs/                # architecture, operator docs, contributor docs, product docs
 ├── tools/theia-desktop/ # in-repo Theia desktop shell bootstrap
 ├── tools/macos/         # macOS app and helper installers
@@ -86,24 +86,26 @@ GitHub is for source hosting and collaboration. It is not a required runtime dep
 
 ### Developer path
 
-1. Start Postgres:
+1. Start Postgres (image includes **pgvector** for semantic project memory):
 
 ```bash
-cd /Users/moldovancsaba/Projects/sentinelsquad
+cd /Users/moldovancsaba/Projects/sovereign
 npm run db:up
 ```
+
+If you previously used plain `postgres:16` without pgvector, recreate the DB volume once after pulling the updated compose file, then run migrations again.
 
 2. Prepare the app:
 
 ```bash
-cd /Users/moldovancsaba/Projects/sentinelsquad/apps/sentinelsquad
+cd /Users/moldovancsaba/Projects/sovereign/apps/sovereign
 cp .env.example .env
 ```
 
 3. Install dependencies and generate Prisma client:
 
 ```bash
-cd /Users/moldovancsaba/Projects/sentinelsquad
+cd /Users/moldovancsaba/Projects/sovereign
 npm run install:app
 npm run prisma:generate
 ```
@@ -111,21 +113,23 @@ npm run prisma:generate
 4. Run migrations:
 
 ```bash
-cd /Users/moldovancsaba/Projects/sentinelsquad/apps/sentinelsquad
+cd /Users/moldovancsaba/Projects/sovereign/apps/sovereign
 npx prisma migrate dev
 ```
+
+For **non-dev** databases (Docker bootstrap, CI, staging), use `npm run prisma:migrate:deploy` from the repo root (see [docs/SETUP.md](docs/SETUP.md)).
 
 5. Start local development:
 
 ```bash
-cd /Users/moldovancsaba/Projects/sentinelsquad
+cd /Users/moldovancsaba/Projects/sovereign
 npm run dev
 ```
 
 6. Start the worker in a second terminal:
 
 ```bash
-cd /Users/moldovancsaba/Projects/sentinelsquad
+cd /Users/moldovancsaba/Projects/sovereign
 npm run worker
 ```
 
@@ -140,12 +144,21 @@ npm run worker
 Install the app bundle from the repo root:
 
 ```bash
-cd /Users/moldovancsaba/Projects/sentinelsquad
+cd /Users/moldovancsaba/Projects/sovereign
 npm run desktop:install-app
-open /Users/moldovancsaba/Applications/SentinelSquad.app
 ```
 
-The desktop app bootstraps the local `.env`, starts the local stack, and opens the current `{sentinelsquad}` product UI in local desktop mode.
+This compiles a small native shell, installs **Sovereign.app** to `/Applications` when that folder is writable, otherwise to **`~/Applications`**, and tries to open it. First launch runs `bootstrap-local-dev.sh` (Docker Postgres if needed, Prisma, seeds), then starts `next dev` and the worker and loads chat in a **WebKit** window.
+
+To force the install location (example: system folder when your user cannot write `/Applications`):
+
+`SOVEREIGN_INSTALL_PARENT="$HOME/Applications" npm run desktop:install-app`
+
+or
+
+`sudo SOVEREIGN_INSTALL_PARENT=/Applications bash tools/macos/SovereignDesktop/install_SovereignDesktop.sh`
+
+Optional slow step: `DESKTOP_BUILD_THEIA_ELECTRON=1 npm run desktop:install-app` also builds the Theia Electron shell (not required for the WebKit launcher).
 
 ## Launch Modes
 
@@ -171,13 +184,13 @@ The product should resolve an installed local model automatically where possible
 
 ## Documentation Map
 
-- architecture baseline: [`/Users/moldovancsaba/Projects/sentinelsquad/docs/architecture/0001-theia-desktop-foundation.md`](/Users/moldovancsaba/Projects/sentinelsquad/docs/architecture/0001-theia-desktop-foundation.md)
-- hardening blueprint: [`/Users/moldovancsaba/Projects/sentinelsquad/docs/architecture/0002-rock-solid-open-source-hardening.md`](/Users/moldovancsaba/Projects/sentinelsquad/docs/architecture/0002-rock-solid-open-source-hardening.md)
-- delivery roadmap: [`/Users/moldovancsaba/Projects/sentinelsquad/docs/SENTINELSQUAD_DELIVERY_ROADMAP.md`](/Users/moldovancsaba/Projects/sentinelsquad/docs/SENTINELSQUAD_DELIVERY_ROADMAP.md)
-- handover: [`/Users/moldovancsaba/Projects/sentinelsquad/HANDOVER.md`](/Users/moldovancsaba/Projects/sentinelsquad/HANDOVER.md)
-- setup: [`/Users/moldovancsaba/Projects/sentinelsquad/docs/SETUP.md`](/Users/moldovancsaba/Projects/sentinelsquad/docs/SETUP.md)
-- build and run: [`/Users/moldovancsaba/Projects/sentinelsquad/docs/BUILD_AND_RUN.md`](/Users/moldovancsaba/Projects/sentinelsquad/docs/BUILD_AND_RUN.md)
-- contributing: [`/Users/moldovancsaba/Projects/sentinelsquad/CONTRIBUTING.md`](/Users/moldovancsaba/Projects/sentinelsquad/CONTRIBUTING.md)
+- architecture baseline: [`/Users/moldovancsaba/Projects/sovereign/docs/architecture/0001-theia-desktop-foundation.md`](/Users/moldovancsaba/Projects/sovereign/docs/architecture/0001-theia-desktop-foundation.md)
+- hardening blueprint: [`/Users/moldovancsaba/Projects/sovereign/docs/architecture/0002-rock-solid-open-source-hardening.md`](/Users/moldovancsaba/Projects/sovereign/docs/architecture/0002-rock-solid-open-source-hardening.md)
+- delivery roadmap: [`/Users/moldovancsaba/Projects/sovereign/docs/SOVEREIGN_DELIVERY_ROADMAP.md`](/Users/moldovancsaba/Projects/sovereign/docs/SOVEREIGN_DELIVERY_ROADMAP.md)
+- handover: [`/Users/moldovancsaba/Projects/sovereign/HANDOVER.md`](/Users/moldovancsaba/Projects/sovereign/HANDOVER.md)
+- setup: [`/Users/moldovancsaba/Projects/sovereign/docs/SETUP.md`](/Users/moldovancsaba/Projects/sovereign/docs/SETUP.md)
+- build and run: [`/Users/moldovancsaba/Projects/sovereign/docs/BUILD_AND_RUN.md`](/Users/moldovancsaba/Projects/sovereign/docs/BUILD_AND_RUN.md)
+- contributing: [`/Users/moldovancsaba/Projects/sovereign/CONTRIBUTING.md`](/Users/moldovancsaba/Projects/sovereign/CONTRIBUTING.md)
 
 ## Verification
 

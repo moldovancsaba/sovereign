@@ -2,27 +2,30 @@
 .idea/
 .vscode/
 
-# Node / Next.js (SentinelSquad)
+# Node / Next.js ({sovereign} app)
 node_modules/
 package-lock.json.*
-apps/sentinelsquad/node_modules/
-apps/sentinelsquad/.next/
-apps/sentinelsquad/.env
-apps/sentinelsquad/.env.*
-!apps/sentinelsquad/.env.example
-apps/sentinelsquad/.sentinelsquad/
-apps/sentinelsquad/output/
-apps/sentinelsquad/test-results/
-apps/sentinelsquad/tsconfig.tsbuildinfo
-apps/sentinelsquad/nexus/__pycache__/
-apps/sentinelsquad/scripts/nexus/__pycache__/
+apps/sovereign/node_modules/
+apps/sovereign/.next/
+apps/sovereign/.env
+apps/sovereign/.env.*
+!apps/sovereign/.env.example
+apps/sovereign/.sentinelsquad/
+apps/sovereign/output/
+apps/sovereign/test-results/
+apps/sovereign/tsconfig.tsbuildinfo
+apps/sovereign/nexus/__pycache__/
+apps/sovereign/scripts/nexus/__pycache__/
 tools/theia-desktop/electron-app/lib/
 tools/theia-desktop/electron-app/src-gen/
 
 # Prisma
-apps/sentinelsquad/prisma/dev.db
+apps/sovereign/prisma/dev.db
 
-# SentinelSquad runtime artifacts
+# Legacy app path (removed); keep briefly so old checkouts do not resurrect noise
+apps/sentinelsquad/
+
+# Runtime artifacts
 MANUAL_REQUIRED
 docker-bootstrap.log
 

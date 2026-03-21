@@ -6,7 +6,7 @@ Accepted as execution blueprint. Mixed implementation state.
 
 ## Purpose
 
-This document defines the hardening plan for `{sentinelsquad}` to become:
+This document defines the hardening plan for `{sovereign}` to become:
 
 - a desktop-first, local-first open-source product
 - easy to install and launch on macOS
@@ -19,7 +19,7 @@ This is not a feature wishlist. It is the execution contract for turning the cur
 
 ## Product Position
 
-`{sentinelsquad}` is the future operating system for AI-native software teams.
+`{sovereign}` is the future operating system for AI-native software teams.
 
 The product model is:
 
@@ -31,8 +31,8 @@ The product model is:
 
 The long-term principle is:
 
-`{sentinelsquad}` is not just an assistant shell.
-`{sentinelsquad}` is the company runtime for AI employees.
+`{sovereign}` is not just an assistant shell.
+`{sovereign}` is the company runtime for AI employees.
 
 ## Required Product Properties
 
@@ -70,7 +70,7 @@ The hardened product must satisfy all of the following:
 
 ## Recommended Delivery Stack
 
-The recommended delivery stack for `{sentinelsquad}` is:
+The recommended delivery stack for `{sovereign}` is:
 
 - Eclipse Theia Desktop
 - Electron
@@ -82,7 +82,7 @@ The recommended delivery stack for `{sentinelsquad}` is:
 - Ollama
 - MLX
 - launchd
-- custom `{sentinelsquad}` orchestration, memory, approval, and tool-execution layers
+- custom `{sovereign}` orchestration, memory, approval, and tool-execution layers
 
 This stack is the architectural recommendation regardless of the current implementation state.
 
@@ -116,7 +116,7 @@ Current weaknesses:
 
 ## System Boundaries
 
-### What `{sentinelsquad}` owns
+### What `{sovereign}` owns
 
 - agent identity
 - role/readiness state
@@ -151,7 +151,7 @@ The repository should converge to this shape:
 ```text
 .
 ├── apps/
-│   └── sentinelsquad/
+│   └── sovereign/
 │       ├── src/
 │       │   ├── app/
 │       │   ├── components/
@@ -198,7 +198,7 @@ Responsibility:
 - workspace shell
 - file tree/editor/terminal substrate
 - native packaging
-- lifecycle bridge to `{sentinelsquad}` local services
+- lifecycle bridge to `{sovereign}` local services
 
 Must not own:
 
@@ -423,11 +423,11 @@ Acceptance criteria:
 ## Phase F: Theia Productization
 
 Goal:
-- make the desktop IDE shell feel like `{sentinelsquad}`, not a generic shell
+- make the desktop IDE shell feel like `{sovereign}`, not a generic shell
 
 Must deliver:
 
-- first `{sentinelsquad}`-native Theia extension
+- first `{sovereign}`-native Theia extension
 - project-session bridge
 - transcript/task/activity panel integration
 - runtime health and agent registry panels
@@ -435,7 +435,7 @@ Must deliver:
 
 Acceptance criteria:
 
-- desktop shell reflects `{sentinelsquad}` concepts directly
+- desktop shell reflects `{sovereign}` concepts directly
 - operator does not need to rely on the web app alone to understand runtime state
 
 ## Phase G: Open-Source Readiness
@@ -531,7 +531,7 @@ Minimum required docs:
 
 ## Definition Of Done For “Rock-Solid”
 
-`{sentinelsquad}` is considered rock-solid only when all of the following are true:
+`{sovereign}` is considered rock-solid only when all of the following are true:
 
 - local install works from documented steps
 - desktop app launches predictably on macOS

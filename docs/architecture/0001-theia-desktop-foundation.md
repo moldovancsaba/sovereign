@@ -1,4 +1,4 @@
-# ADR 0001: `{sentinelsquad}` Desktop Foundation And Product Boundaries
+# ADR 0001: `{sovereign}` Desktop Foundation And Product Boundaries
 
 ## Status
 
@@ -10,9 +10,9 @@ Accepted as target architecture. Partially implemented.
 
 ## Decision
 
-`{sentinelsquad}` is a desktop-first product with Eclipse Theia Desktop as the target primary shell.
+`{sovereign}` is a desktop-first product with Eclipse Theia Desktop as the target primary shell.
 
-Theia is the target desktop shell and IDE substrate. `{sentinelsquad}` remains the product core and source of truth for:
+Theia is the target desktop shell and IDE substrate. `{sovereign}` remains the product core and source of truth for:
 
 - agent registry and readiness
 - threads, messages, tasks, and event history
@@ -39,7 +39,7 @@ The broader recommended product stack is:
 - Ollama
 - MLX
 - launchd
-- custom `{sentinelsquad}` orchestration, memory, and policy layers
+- custom `{sovereign}` orchestration, memory, and policy layers
 
 ## Context
 
@@ -60,7 +60,7 @@ Theia gives a cleaner foundation for a branded desktop IDE while still supportin
 - intended for building custom IDE products, not only editors
 - desktop packaging is a first-class path
 - supports custom panels and workflows better than trying to force everything through browser pages
-- keeps the IDE shell decoupled from `{sentinelsquad}` orchestration logic
+- keeps the IDE shell decoupled from `{sovereign}` orchestration logic
 - supports future extension reuse without making marketplace plugins the core architecture
 
 ## Product Boundaries
@@ -71,9 +71,9 @@ Theia gives a cleaner foundation for a branded desktop IDE while still supportin
 - workbench layout
 - file explorer, editor, terminal, command palette, and panel docking
 - workspace opening and project window presentation
-- future `{sentinelsquad}` panels embedded into the desktop shell
+- future `{sovereign}` panels embedded into the desktop shell
 
-### `{sentinelsquad}` Core Owns
+### `{sovereign}` Core Owns
 
 - persistent agent metadata
 - thread, task, and event persistence
@@ -99,7 +99,7 @@ Theia gives a cleaner foundation for a branded desktop IDE while still supportin
 
 ## Extension Strategy
 
-Theia-native extensions should be the default strategy for any feature that is core to `{sentinelsquad}`:
+Theia-native extensions should be the default strategy for any feature that is core to `{sovereign}`:
 
 - unified multi-agent chat
 - command-center transcript
@@ -115,12 +115,12 @@ Marketplace reuse is optional and subordinate to product control.
 
 - macOS-first desktop packaging
 - local-first startup path must remain possible without cloud dependencies
-- shell upgrades must not change `{sentinelsquad}` database, policy, or runtime contracts implicitly
+- shell upgrades must not change `{sovereign}` database, policy, or runtime contracts implicitly
 - product-specific shell integrations should be isolated enough that Theia upgrades are manageable
 
 ## Workspace And Session Rule
 
-The desktop shell may open folders and workspaces, but `{sentinelsquad}` owns the durable identity of project sessions. That identity is what tasks, transcripts, and runtime actions must attach to.
+The desktop shell may open folders and workspaces, but `{sovereign}` owns the durable identity of project sessions. That identity is what tasks, transcripts, and runtime actions must attach to.
 
 This avoids a class of bugs where the UI and orchestrator disagree about which local project context is active.
 
@@ -145,12 +145,12 @@ Implemented now:
 
 - in-repo Theia bootstrap exists
 - native macOS wrapper exists
-- product/session/runtime contracts exist on the `{sentinelsquad}` side
+- product/session/runtime contracts exist on the `{sovereign}` side
 
 Not yet complete:
 
 - Theia is not the primary shipped shell
-- `{sentinelsquad}`-native Theia extensions are not yet the main operator surface
+- `{sovereign}`-native Theia extensions are not yet the main operator surface
 
 ## Immediate Follow-Up Work
 

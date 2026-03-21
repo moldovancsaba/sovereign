@@ -1,0 +1,48 @@
+name: Sovereign Security Policy Baseline Gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "apps/sovereign/src/lib/tool-command-policy.ts"
+      - "apps/sovereign/scripts/lib/tool-command-policy.js"
+      - "apps/sovereign/scripts/e2e/sovereign-security-policy-baseline.e2e.js"
+      - "apps/sovereign/scripts/e2e/sovereign-filesystem-safety.e2e.js"
+      - "apps/sovereign/package.json"
+      - "apps/sovereign/package-lock.json"
+      - ".github/workflows/sovereign-security-policy-gate.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/sovereign/src/lib/tool-command-policy.ts"
+      - "apps/sovereign/scripts/lib/tool-command-policy.js"
+      - "apps/sovereign/scripts/e2e/sovereign-security-policy-baseline.e2e.js"
+      - "apps/sovereign/scripts/e2e/sovereign-filesystem-safety.e2e.js"
+      - "apps/sovereign/package.json"
+      - "apps/sovereign/package-lock.json"
+      - ".github/workflows/sovereign-security-policy-gate.yml"
+
+jobs:
+  security-policy-baseline-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/sovereign
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/sovereign/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run security policy baseline regression harness
+        run: npm run e2e:security-policy
