@@ -11,7 +11,7 @@
     "dev": "npm --prefix apps/sovereign run dev",
     "build": "npm --prefix apps/sovereign run build",
     "typecheck": "npm --prefix apps/sovereign run typecheck",
-    "verify": "npm run typecheck && npm --prefix apps/sovereign run e2e:render-contract && npm run build",
+    "verify": "npm run typecheck && npm --prefix apps/sovereign run e2e:render-contract && npm --prefix apps/sovereign run e2e:mcp-docs && npm run build",
     "start": "npm --prefix apps/sovereign run start",
     "worker": "npm --prefix apps/sovereign run worker",
     "desktop:bootstrap": "npm --prefix tools/theia-desktop run bootstrap",

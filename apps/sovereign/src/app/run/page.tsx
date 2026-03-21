@@ -62,6 +62,17 @@ const FLOWS: Array<{
     notes: "Requires DATABASE_URL and, for semantic search, Ollama + nomic-embed-text. Pass projectSessionId in tool args (from your active project session)."
   },
   {
+    title: "Run the MCP docs server (runbooks)",
+    description:
+      "LLD-007 slice: read-only MCP resources from repo docs (e.g. doc://runbooks/getting-started, doc://project/ssot-board). Optional BookStack: see docs/setup/WIKI_SELF_HOSTED.md.",
+    commands: [
+      "cd /Users/moldovancsaba/Projects/sovereign/apps/sovereign",
+      "npm run mcp:docs"
+    ],
+    cwd: "apps/sovereign",
+    notes: "Send JSON-RPC lines on stdin: resources/list, resources/read with params.uri. Override repo root with SOVEREIGN_DOCS_REPO_ROOT if needed."
+  },
+  {
     title: "Run database migrations",
     description: "Apply pending Prisma migrations.",
     commands: [

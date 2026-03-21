@@ -189,6 +189,8 @@ Each block below is a **single deliverable issue**. Copy to mvp-factory-control 
 | **Validation** | Manual MCP read; optional ingestion run. |
 | **Target repo** | This repo (or separate ops repo). **Implementation surfaces:** MCP server for docs; wiki deploy doc; optional ingest script. |
 
+**Implementation note (2026-03):** Repo-first slice: `npm run mcp:docs` exposes `doc://runbooks/getting-started` (and SSOT) from filesystem; `docker-compose.wiki.yml` + `docs/setup/WIKI_SELF_HOSTED.md` cover optional BookStack. Remaining for full AC: MCP reads from live wiki API; optional ingestion to `ProjectMemory`.
+
 ---
 
 ### Issue LLD-008: Self-improvement policy (scope, approval, rollback, audit)

@@ -33,6 +33,8 @@ This is the navigation hub for `{sovereign}` documentation.
 
 - [SETUP.md](SETUP.md)
 - [BUILD_AND_RUN.md](BUILD_AND_RUN.md)
+- [setup/WIKI_SELF_HOSTED.md](setup/WIKI_SELF_HOSTED.md) — optional BookStack wiki (LLD-007) + MCP docs server notes
+- [runbooks/getting-started.md](runbooks/getting-started.md) — operator runbook (also exposed as MCP resource `doc://runbooks/getting-started`)
 - [GENERAL_KNOWLEDGE.md](GENERAL_KNOWLEDGE.md)
 - [OBSOLETE_AND_LEFTOVER_AUDIT.md](OBSOLETE_AND_LEFTOVER_AUDIT.md) — legacy paths, rename candidates, compat identifiers (SentinelSquad leftovers)
 

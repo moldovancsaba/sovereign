@@ -25,7 +25,8 @@
 - thread and task event timeline
 - local runtime doctor, local system-service status, and dashboard health
 - durable project-memory capture foundation
-- **LLD-006 (foundation + follow-through):** `ProjectMemory` kinds + provenance + `vector(768)` embedding; **HNSW** partial index on `embedding` (migration `20260321103000_project_memory_embedding_hnsw`); `POST /api/memory/search` (lexical + optional semantic). **MCP:** `npm run mcp:memory` — tools + **resources** (`sovereign-memory://docs/operator-guide`, `sovereign-memory://memory/{id}`). **Worker:** tool protocol `memory.*`; **prompt memory** default **THREAD**; opt-in **PROJECT_SESSION** via task `payload.memory.scope` (durable `ProjectMemory` lexical match for active project session). ADR: [docs/architecture/0004-memory-pgvector-embedding.md](docs/architecture/0004-memory-pgvector-embedding.md). Remaining (optional): semantic snippets in worker prompt, LLD-007 wiki ingestion.
+- **LLD-006 (foundation + follow-through):** `ProjectMemory` kinds + provenance + `vector(768)` embedding; **HNSW** partial index on `embedding` (migration `20260321103000_project_memory_embedding_hnsw`); `POST /api/memory/search` (lexical + optional semantic). **MCP:** `npm run mcp:memory` — tools + **resources** (`sovereign-memory://docs/operator-guide`, `sovereign-memory://memory/{id}`). **Worker:** tool protocol `memory.*`; **prompt memory** default **THREAD**; opt-in **PROJECT_SESSION** via task `payload.memory.scope` (durable `ProjectMemory` lexical match for active project session). ADR: [docs/architecture/0004-memory-pgvector-embedding.md](docs/architecture/0004-memory-pgvector-embedding.md). Remaining (optional): semantic snippets in worker prompt.
+- **LLD-007 (first slice):** `npm run mcp:docs` — MCP **resources/read** for repo markdown (`doc://runbooks/getting-started`, `doc://project/ssot-board`); [docs/runbooks/getting-started.md](docs/runbooks/getting-started.md); optional **BookStack** stack [docker-compose.wiki.yml](docker-compose.wiki.yml) + [docs/setup/WIKI_SELF_HOSTED.md](docs/setup/WIKI_SELF_HOSTED.md). **Still open for #443:** live wiki HTTP bridge, optional wiki→memory ingestion.
 - **Operator UI refresh:** Shell privileges Chat, `{sovereign}` / Sovereign copy, updated tokens (`globals.css`), page subtitles aligned to [docs/UI_UX_STANDARDS.md](docs/UI_UX_STANDARDS.md); Theia-native shell remains future (LLD-009)
 - **Local backlog:** API, Kanban UI (read-only at `/backlog`), worker backlog tools (`backlog.list_boards`, `backlog.list_items`, `backlog.get_item`, `backlog.create_item`, `backlog.update_item`, `backlog.add_feedback`), MCP backlog server (stdio) — run: `npm run mcp:backlog` from `apps/sovereign`
 - **Final-judgement (JUDGE):** JUDGEMENT ChatEvent, task fields (`judgementVote`, `judgementConfidence`, `judgementReason`, `escalatedAt`), transcript display and escalation in chat UI
@@ -38,6 +39,7 @@
 - memory retrieval, annotation, and review
 - complete provider abstraction beyond the current Ollama-first path
 - first-public OSS packaging polish
+- **LLD-007** remainder: MCP reads from live BookStack/Outline API; automated wiki page → `ProjectMemory` ingestion with `sourceUrl`
 - LLD-001 rename: **done on board** — [mvp-factory-control#437](https://github.com/moldovancsaba/mvp-factory-control/issues/437) closed **2026-03-21**. Runtime uses **`SOVEREIGN_*`** env vars only (no `SENTINELSQUAD_*` fallbacks), **`.sovereign/`** settings paths only, NextAuth dev provider **`sovereign-dev`** only, and tool-call protocol **`sovereign.tool-call`** only. LaunchAgent install still **boots out** `com.sentinelsquad.*` labels for machines that had the old agents.
 
 ---
@@ -74,6 +76,7 @@ From app dir (e.g. `apps/sovereign`):
 ```bash
 npx prisma migrate status
 node scripts/mcp-backlog-server.js   # then send one JSON-RPC line to stdin, e.g. {"jsonrpc":"2.0","id":1,"method":"tools/list"}
+npm run mcp:docs   # resources/list + resources/read (doc://…) — no DB
 ```
 
 **Other environments / rollout:** from repo root, `npm run prisma:migrate:deploy` with valid `DATABASE_URL` (pgvector Postgres). Docker: `./scripts/sovereign-docker-bootstrap.sh` applies migrations automatically.
@@ -82,7 +85,7 @@ node scripts/mcp-backlog-server.js   # then send one JSON-RPC line to stdin, e.g
 
 ## Next Priority
 
-1. **Next LLDs:** **LLD-007**–**LLD-010** — per [docs/SOVEREIGN_PROJECT_BOARD_SSOT.md](docs/SOVEREIGN_PROJECT_BOARD_SSOT.md) §2 and §4.1 ([#443](https://github.com/moldovancsaba/mvp-factory-control/issues/443)–[#446](https://github.com/moldovancsaba/mvp-factory-control/issues/446)).
+1. **Next LLDs:** **LLD-007**–**LLD-010** — per [docs/SOVEREIGN_PROJECT_BOARD_SSOT.md](docs/SOVEREIGN_PROJECT_BOARD_SSOT.md) §2 and §4.1 ([#443](https://github.com/moldovancsaba/mvp-factory-control/issues/443)–[#446](https://github.com/moldovancsaba/mvp-factory-control/issues/446)). **LLD-007:** repo MCP docs + optional BookStack compose shipped; finish AC on **#443** (remote wiki MCP + optional ingestion).
 2. **Hybrid v1 PO sign-off:** [mvp-factory-control#447](https://github.com/moldovancsaba/mvp-factory-control/issues/447) (on [MVP Factory Board](https://github.com/users/moldovancsaba/projects/1)) — close when AC met; SSOT §2.2 / §4.2 updated. Extended backlog **#432, #433, #436** — SSOT **§2.1**.
 3. ~~Implement and automate daily sub-tasks~~ Done: see **Run** (/run). Otherwise: in the application (e.g. “How to run the MCP server” and similar operator flows).
 4. After each merge to `main`: HANDOVER log (**70 PROTOCOL**) + SSOT checklist if an LLD or extended item progressed.
@@ -93,6 +96,7 @@ node scripts/mcp-backlog-server.js   # then send one JSON-RPC line to stdin, e.g
 
 Each entry below is appended per READMEDEV rule 13. Format: timestamp + agent label, branch/commit, objective, what changed, files touched, validation, known issues/next actions.
 
+- **2026-03-24 (local)** — **LLD-007 slice (MCP docs + wiki deploy doc):** Added `npm run mcp:docs` ([apps/sovereign/scripts/mcp-docs-server.js](apps/sovereign/scripts/mcp-docs-server.js)) with `doc://runbooks/getting-started` and `doc://project/ssot-board`; [docs/runbooks/getting-started.md](docs/runbooks/getting-started.md); [docker-compose.wiki.yml](docker-compose.wiki.yml) + [docs/setup/WIKI_SELF_HOSTED.md](docs/setup/WIKI_SELF_HOSTED.md); Run page flow; root `verify` runs [e2e:mcp-docs](apps/sovereign/scripts/e2e/sovereign-mcp-docs.e2e.js). **Validation:** `npm run verify`.
 - **2026-03-23 (local)** — **Board mirror for hybrid orchestrator v1:** Opened [mvp-factory-control#447](https://github.com/moldovancsaba/mvp-factory-control/issues/447) (PO acceptance + AC); added to **MVP Factory Board** (GitHub Projects #1). Updated [docs/SOVEREIGN_PROJECT_BOARD_SSOT.md](docs/SOVEREIGN_PROJECT_BOARD_SSOT.md) §2.2, §3.1, §4.2; [HANDOVER.md](HANDOVER.md) operator truth + Next Priority. **Validation:** `gh issue view` / `gh project item-add` spot-check.
 - **2026-03-22 (local)** — **Sovereign cutover + hybrid orchestrator v1 (`main` `4b5e784`):** Shipped to **origin/main**. Removed intentional SentinelSquad compat: single dev auth path, `SOVEREIGN_*` env surface (no dual fallbacks where cut), MCP tool name `sovereign.tool-call` only, `.sovereign` settings paths, RBAC / `strict-orchestration` and related renames. **Hybrid v1:** [docs/architecture/HYBRID_ORCHESTRATOR_SPEC_V1.md](docs/architecture/HYBRID_ORCHESTRATOR_SPEC_V1.md); `apps/sovereign/src/lib/hybrid-orchestrator/*`; `POST /api/orchestrator/hybrid`. **Fix:** `thread-events` Prisma import → `@prisma/client`. Docs touch: WIKI, HANDOVER (LLD-001 / board text). **Validation:** `npm run verify` before push. **Next:** Migrate any lingering local env/settings from legacy names; run hybrid API integration or simulation passes; keep [docs/SOVEREIGN_PROJECT_BOARD_SSOT.md](docs/SOVEREIGN_PROJECT_BOARD_SSOT.md) aligned with shipped state.
 - **2026-03-21 (local)** — **Rollout ergonomics:** Root \`npm run prisma:migrate:deploy\`; SETUP/BUILD_AND_RUN/README/HANDOVER document deploy vs dev; Docker portability workflow retriggers on root \`package.json\` changes.

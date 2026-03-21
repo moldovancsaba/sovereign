@@ -1,0 +1,45 @@
+# Optional self-hosted wiki (BookStack) for LLD-007 — not started by default.
+# Run: docker compose -f docker-compose.wiki.yml up -d
+# Then open http://127.0.0.1:6875 and complete the BookStack web installer if prompted.
+# See docs/setup/WIKI_SELF_HOSTED.md for MCP bridge notes.
+
+services:
+  bookstack-db:
+    image: lscr.io/linuxserver/mariadb:latest
+    container_name: sovereign-bookstack-db
+    restart: unless-stopped
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: UTC
+      MYSQL_ROOT_PASSWORD: bookstack_root_change_me
+      MYSQL_DATABASE: bookstackapp
+      MYSQL_USER: bookstack
+      MYSQL_PASSWORD: bookstack_app_change_me
+    volumes:
+      - sovereign_bookstack_db:/config
+
+  bookstack:
+    image: lscr.io/linuxserver/bookstack:latest
+    container_name: sovereign-bookstack
+    restart: unless-stopped
+    depends_on:
+      - bookstack-db
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: UTC
+      APP_URL: ${BOOKSTACK_APP_URL:-http://127.0.0.1:6875}
+      DB_HOST: bookstack-db
+      DB_PORT: 3306
+      DB_USER: bookstack
+      DB_PASS: bookstack_app_change_me
+      DB_DATABASE: bookstackapp
+    volumes:
+      - sovereign_bookstack_config:/config
+    ports:
+      - "${BOOKSTACK_PORT:-6875}:80"
+
+volumes:
+  sovereign_bookstack_db:
+  sovereign_bookstack_config:
