@@ -1,6 +1,6 @@
 {
   "name": "sovereign",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "private": true,
   "description": "{sovereign} (local-first control plane)",
   "scripts": {
@@ -17,6 +17,7 @@
     "e2e:security-policy": "node scripts/e2e/sovereign-security-policy-baseline.e2e.js",
     "e2e:recovery-readiness": "node scripts/e2e/sovereign-recovery-readiness.e2e.js",
     "e2e:mcp-docs": "node scripts/e2e/sovereign-mcp-docs.e2e.js",
+    "e2e:api-v1-trinity": "node scripts/e2e/sovereign-api-v1-trinity.e2e.js",
     "recovery:incident-bundle": "node scripts/recovery/sovereign-incident-bundle.js",
     "lint": "echo \"Lint not configured for this Next.js version\"",
     "prisma:generate": "prisma generate",
