@@ -2,6 +2,21 @@
 
 Sovereign exposes an LLM-compatible API surface under `/api/v1` for local-first and hybrid runtime usage.
 
+## Delivery Traceability
+
+This API surface and related runtime features were delivered under Sovereign issue set:
+
+- `#1` API v1 hardening
+- `#2` Trinity stage contract enforcement
+- `#3` Trinity retry + failure taxonomy
+- `#4` Trinity run query API
+- `#5` Manual staffing contract
+- `#6` Auto staffing scorer
+- `#7` Group registry + nested groups
+- `#8` Ranking system
+- `#9` API/trinity quality gate e2e
+- `#10` rollout tracking umbrella
+
 ## Authentication
 
 Optional token auth:

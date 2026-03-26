@@ -114,13 +114,20 @@ Implemented now:
 - project-scoped tool execution
 - runtime doctor and local service health
 - durable project-memory capture foundation
+- API v1 LLM-compatible runtime surface (`chat/completions`, `models`, `health`)
+- Trinity runtime with staged roles, confidence policy, and bounded retries
+- persisted Trinity run artifacts + query endpoints
+- workforce foundations: group registry, nested-member cycle guard, manual/auto staffing
+- role ranking persistence + ranking-informed auto staffing baseline
+- deterministic API workforce e2e gate for CI/local validation
 
 Partially implemented:
 
 - command-center transcript final-judgement semantics
 - desktop-shell transition to Theia
-- provider abstraction beyond Ollama-first
+- provider abstraction beyond Ollama/OpenAI-compatible/mock
 - memory retrieval, annotation, and review
+- advanced ranking calibration and adaptive staffing policy tuning
 
 Target architecture:
 

@@ -6,7 +6,7 @@ The product goal is not “one coding assistant in an editor.” The goal is a c
 
 ## Delivery Status
 
-Current release stage: `1.0.1`
+Current release stage: `1.1.0`
 
 What is implemented now:
 
@@ -18,13 +18,20 @@ What is implemented now:
 - thread and task event timeline
 - local runtime health and service status views
 - first durable project-memory capture foundation
+- API v1 LLM-compatible surface (`/api/v1/chat/completions`, `/models`, `/health`)
+- Trinity execution path with Drafter/Writer/Judge stages, confidence semantics, and bounded retries
+- persisted Trinity runs with query endpoints (`/api/v1/trinity/runs`, `/api/v1/trinity/runs/:id`)
+- workforce foundations: agent-group registry, nested group membership, cycle guard
+- deterministic auto staffing with role scoring + persisted role rankings
+- deterministic API v1 workforce e2e gate (`npm run e2e:api-v1-trinity`)
 
 What is only partially implemented:
 
 - Theia desktop integration
 - memory retrieval, annotation, and review workflows
-- provider abstraction beyond Ollama-first execution
+- provider abstraction beyond Ollama/OpenAI-compatible/mock execution
 - final-judgement and operator review semantics
+- advanced ranking calibration and adaptive scoring beyond current deterministic baseline
 
 What is target architecture, not shipped baseline:
 
@@ -55,7 +62,7 @@ GitHub is for source hosting and collaboration. It is not a required runtime dep
 - GitHub: [moldovancsaba/sovereign](https://github.com/moldovancsaba/sovereign)
 - Local root: `/Users/moldovancsaba/Projects/sovereign`
 - App: [`/Users/moldovancsaba/Projects/sovereign/apps/sovereign`](/Users/moldovancsaba/Projects/sovereign/apps/sovereign)
-- Product version: `1.0.1`
+- Product version: `1.1.0`
 
 ## Repository Shape
 

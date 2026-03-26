@@ -6,9 +6,9 @@
 
 ## Current Release
 
-- **Version:** `1.0.1`
-- **Date:** `2026-03-19`
-- **Stage:** `first-client-delivery hardening`
+- **Version:** `1.1.0`
+- **Date:** `2026-03-26`
+- **Stage:** `trinity-workforce API v1 delivered`
 
 ---
 
@@ -30,6 +30,18 @@
 - **Operator UI refresh:** Shell privileges Chat, `{sovereign}` / Sovereign copy, updated tokens (`globals.css`), page subtitles aligned to [docs/UI_UX_STANDARDS.md](docs/UI_UX_STANDARDS.md); Theia-native shell remains future (LLD-009)
 - **Local backlog:** API, Kanban UI (read-only at `/backlog`), worker backlog tools (`backlog.list_boards`, `backlog.list_items`, `backlog.get_item`, `backlog.create_item`, `backlog.update_item`, `backlog.add_feedback`), MCP backlog server (stdio) — run: `npm run mcp:backlog` from `apps/sovereign`
 - **Final-judgement (JUDGE):** JUDGEMENT ChatEvent, task fields (`judgementVote`, `judgementConfidence`, `judgementReason`, `escalatedAt`), transcript display and escalation in chat UI
+- **Sovereign API v1 (delivered):** LLM-compatible surface under `/api/v1`:
+  - `POST /api/v1/chat/completions`
+  - `GET /api/v1/models`
+  - `GET /api/v1/health`
+  - `GET /api/v1/trinity/runs`
+  - `GET /api/v1/trinity/runs/:id`
+  - `GET/POST /api/v1/agent-groups`
+  - `GET/POST /api/v1/agent-groups/:key/members`
+  - `GET /api/v1/rankings/roles`
+- **Trinity runtime (delivered):** staged `Drafter -> Writer -> Judge` execution, confidence/clarification semantics, bounded retries, persisted run artifacts (`TrinityExecutionRun`).
+- **Workforce foundations (delivered):** manual staffing contract, `group_key` context binding, deterministic auto-staffing scorer, persisted role rankings (`AgentRoleRanking`), nested group cycle block.
+- **Quality gate (delivered):** deterministic API workforce e2e script (`npm run e2e:api-v1-trinity`) covering validation, trinity acceptance, group cycle block, and run-audit readback.
 
 ---
 
@@ -87,10 +99,10 @@ npm run wiki:ingest-batch -- --project-session-id=<cuid> --batch-limit=25
 
 ## Next Priority
 
-1. **Next LLDs:** **LLD-007**–**LLD-010** — per [docs/SOVEREIGN_PROJECT_BOARD_SSOT.md](docs/SOVEREIGN_PROJECT_BOARD_SSOT.md) §2 and §4.1 ([#443](https://github.com/moldovancsaba/mvp-factory-control/issues/443)–[#446](https://github.com/moldovancsaba/mvp-factory-control/issues/446)). **LLD-007:** BookStack MCP bridge + ingest CLI shipped; PO sign-off / close **#443** when ready.
-2. **Hybrid v1 PO sign-off:** [mvp-factory-control#447](https://github.com/moldovancsaba/mvp-factory-control/issues/447) (on [MVP Factory Board](https://github.com/users/moldovancsaba/projects/1)) — close when AC met; SSOT §2.2 / §4.2 updated. Extended backlog **#432, #433, #436** — SSOT **§2.1**.
-3. ~~Implement and automate daily sub-tasks~~ Done: see **Run** (/run). Otherwise: in the application (e.g. “How to run the MCP server” and similar operator flows).
-4. After each merge to `main`: HANDOVER log (**70 PROTOCOL**) + SSOT checklist if an LLD or extended item progressed.
+1. **Phase C/D completion:** calibrate and tune auto-staffing/ranking with production traces (acceptance quality, latency, stability), then ship ranking-policy controls.
+2. **Team runtime expansion:** move from trinity-backed team mode baseline to full group execution semantics (group-level policies, nested group strategy, richer selection constraints).
+3. **Provider abstraction growth:** extend provider matrix beyond Ollama/OpenAI-compatible/mock to planned target providers while preserving API v1 contract stability.
+4. After each merge to `main`: HANDOVER log (**70 PROTOCOL**) + issue/roadmap status sync.
 
 ---
 
@@ -99,6 +111,7 @@ npm run wiki:ingest-batch -- --project-session-id=<cuid> --batch-limit=25
 Each entry below is appended per READMEDEV rule 13. Format: timestamp + agent label, branch/commit, objective, what changed, files touched, validation, known issues/next actions.
 
 - **2026-03-24 (local)** — **LLD-007 Outline + batch ingest:** [wiki-outline.js](apps/sovereign/scripts/lib/wiki-outline.js), [wiki-adapter.js](apps/sovereign/scripts/lib/wiki-adapter.js); MCP `doc://wiki/outline/doc/{uuid}`; `wiki:ingest-batch` + dedupe by `sourceUrl`; `.env.example` + [WIKI_SELF_HOSTED.md](docs/setup/WIKI_SELF_HOSTED.md). **Validation:** `npm run verify`.
+- **2026-03-26 (local)** — **Trinity workforce API v1 rollout (issues #1-#10):** Added API v1 routes, trinity runtime, run persistence/query API, manual+auto staffing, group registry with cycle guard, role ranking model, deterministic e2e (`e2e:api-v1-trinity`), docs + roadmap alignment, version bump to `1.1.0`, and CI portability gate redirect compatibility update. Key files: `apps/sovereign/src/app/api/v1/*`, `apps/sovereign/src/lib/sovereign-api-executor.ts`, `agent-groups.ts`, `agent-role-ranking.ts`, `trinity-execution-runs.ts`, Prisma schema + migrations `20260326113000`, `20260326124000`, `20260326134000`, `20260326142841`, docs `API_V1.md`, `SOVEREIGN_TRINITY_WORKFORCE_PLAN.md`. **Validation:** `npm run typecheck`; `npm run e2e:api-v1-trinity`; PR [#11](https://github.com/moldovancsaba/sovereign/pull/11) checks green after follow-up fixes.
 - **2026-03-24 (local)** — **LLD-007 BookStack bridge + ingest:** [apps/sovereign/scripts/lib/wiki-bookstack.js](apps/sovereign/scripts/lib/wiki-bookstack.js) (REST list/read + public URL); [mcp-docs-server.js](apps/sovereign/scripts/mcp-docs-server.js) `doc://wiki/bookstack/page/{id}`; [ingest-wiki-to-memory.js](apps/sovereign/scripts/ingest-wiki-to-memory.js) + `wiki:ingest-page`; `.env.example` + [WIKI_SELF_HOSTED.md](docs/setup/WIKI_SELF_HOSTED.md) + Master Plan note. **Validation:** `npm run verify`.
 - **2026-03-24 (local)** — **LLD-007 slice (MCP docs + wiki deploy doc):** Added `npm run mcp:docs` ([apps/sovereign/scripts/mcp-docs-server.js](apps/sovereign/scripts/mcp-docs-server.js)) with `doc://runbooks/getting-started` and `doc://project/ssot-board`; [docs/runbooks/getting-started.md](docs/runbooks/getting-started.md); [docker-compose.wiki.yml](docker-compose.wiki.yml) + [docs/setup/WIKI_SELF_HOSTED.md](docs/setup/WIKI_SELF_HOSTED.md); Run page flow; root `verify` runs [e2e:mcp-docs](apps/sovereign/scripts/e2e/sovereign-mcp-docs.e2e.js). **Validation:** `npm run verify`.
 - **2026-03-23 (local)** — **Board mirror for hybrid orchestrator v1:** Opened [mvp-factory-control#447](https://github.com/moldovancsaba/mvp-factory-control/issues/447) (PO acceptance + AC); added to **MVP Factory Board** (GitHub Projects #1). Updated [docs/SOVEREIGN_PROJECT_BOARD_SSOT.md](docs/SOVEREIGN_PROJECT_BOARD_SSOT.md) §2.2, §3.1, §4.2; [HANDOVER.md](HANDOVER.md) operator truth + Next Priority. **Validation:** `gh issue view` / `gh project item-add` spot-check.
