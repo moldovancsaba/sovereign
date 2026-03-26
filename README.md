@@ -190,6 +190,7 @@ The product should resolve an installed local model automatically where possible
 - handover: [`/Users/moldovancsaba/Projects/sovereign/HANDOVER.md`](/Users/moldovancsaba/Projects/sovereign/HANDOVER.md)
 - setup: [`/Users/moldovancsaba/Projects/sovereign/docs/SETUP.md`](/Users/moldovancsaba/Projects/sovereign/docs/SETUP.md)
 - build and run: [`/Users/moldovancsaba/Projects/sovereign/docs/BUILD_AND_RUN.md`](/Users/moldovancsaba/Projects/sovereign/docs/BUILD_AND_RUN.md)
+- API v1: [`/Users/moldovancsaba/Projects/sovereign/docs/API_V1.md`](/Users/moldovancsaba/Projects/sovereign/docs/API_V1.md)
 - contributing: [`/Users/moldovancsaba/Projects/sovereign/CONTRIBUTING.md`](/Users/moldovancsaba/Projects/sovereign/CONTRIBUTING.md)
 
 ## Verification
