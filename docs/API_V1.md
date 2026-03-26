@@ -52,7 +52,7 @@ Request example:
 Supported fields:
 
 - `mode`: `direct | trinity | team | auto`
-- `provider`: `local | cloud | auto`
+- `provider`: `local | cloud | auto | mock`
   - `mock` is available for deterministic local testing (no external runtime call)
 - `model`: optional explicit model id
 - `temperature`: optional number
@@ -70,11 +70,21 @@ Manual staffing is currently applied in `trinity` and `team` modes. Assigned age
 
 Auto staffing (`team.strategy=auto`, or `mode=auto`) uses deterministic role scoring per role (`drafter`, `writer`, `judge`) with weighted signals:
 
-- quality: 40%
-- role fit: 25%
-- latency proxy: 20%
+- quality: 35%
+- role fit: 22%
+- latency proxy: 18%
 - cost proxy: 10%
 - reliability recency: 5%
+- ranking boost: 10%
+
+Calibration can be tuned via env vars. Any negative/invalid values are clamped safely and weights are normalized at runtime:
+
+- `SOVEREIGN_STAFFING_WEIGHT_QUALITY`
+- `SOVEREIGN_STAFFING_WEIGHT_ROLE_FIT`
+- `SOVEREIGN_STAFFING_WEIGHT_LATENCY`
+- `SOVEREIGN_STAFFING_WEIGHT_COST`
+- `SOVEREIGN_STAFFING_WEIGHT_RELIABILITY`
+- `SOVEREIGN_STAFFING_WEIGHT_RANKING_BOOST`
 
 Selection rationale is returned in `sovereign.metadata.staffing` and persisted into Trinity run metadata.
 

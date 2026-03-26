@@ -102,10 +102,21 @@ type TrinityStageResult = {
 
 type TrinityRole = "drafter" | "writer" | "judge";
 
+type StaffingCalibration = {
+  profile: string;
+  qualityWeight: number;
+  roleFitWeight: number;
+  latencyWeight: number;
+  costWeight: number;
+  reliabilityWeight: number;
+  rankingBoostWeight: number;
+};
+
 type StaffingDecision = {
   strategy: "manual" | "auto";
   assignments: Partial<Record<TrinityRole, string>>;
   resolvedProviders: Partial<Record<TrinityRole, ResolvedProviderConfig>>;
+  calibration: StaffingCalibration;
   scoring?: Record<
     TrinityRole,
     {
@@ -136,6 +147,64 @@ function normalizeText(value: unknown) {
 function clamp01(value: number) {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(1, value));
+}
+
+function parseFiniteNumber(raw: string | undefined) {
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return null;
+  return parsed;
+}
+
+function normalizeWeightValue(raw: string | undefined, fallback: number) {
+  const parsed = parseFiniteNumber(raw);
+  if (parsed == null) return fallback;
+  // Invalid or negative values are treated as disabled signals.
+  return Math.max(0, parsed);
+}
+
+function resolveStaffingCalibration(): StaffingCalibration {
+  const defaults = {
+    qualityWeight: 0.35,
+    roleFitWeight: 0.22,
+    latencyWeight: 0.18,
+    costWeight: 0.1,
+    reliabilityWeight: 0.05,
+    rankingBoostWeight: 0.1
+  };
+  const requested = {
+    qualityWeight: normalizeWeightValue(process.env.SOVEREIGN_STAFFING_WEIGHT_QUALITY, defaults.qualityWeight),
+    roleFitWeight: normalizeWeightValue(process.env.SOVEREIGN_STAFFING_WEIGHT_ROLE_FIT, defaults.roleFitWeight),
+    latencyWeight: normalizeWeightValue(process.env.SOVEREIGN_STAFFING_WEIGHT_LATENCY, defaults.latencyWeight),
+    costWeight: normalizeWeightValue(process.env.SOVEREIGN_STAFFING_WEIGHT_COST, defaults.costWeight),
+    reliabilityWeight: normalizeWeightValue(
+      process.env.SOVEREIGN_STAFFING_WEIGHT_RELIABILITY,
+      defaults.reliabilityWeight
+    ),
+    rankingBoostWeight: normalizeWeightValue(
+      process.env.SOVEREIGN_STAFFING_WEIGHT_RANKING_BOOST,
+      defaults.rankingBoostWeight
+    )
+  };
+  const sum =
+    requested.qualityWeight +
+    requested.roleFitWeight +
+    requested.latencyWeight +
+    requested.costWeight +
+    requested.reliabilityWeight +
+    requested.rankingBoostWeight;
+
+  if (!(sum > 0)) {
+    return { profile: "default_safe", ...defaults };
+  }
+  return {
+    profile: "env_calibrated",
+    qualityWeight: requested.qualityWeight / sum,
+    roleFitWeight: requested.roleFitWeight / sum,
+    latencyWeight: requested.latencyWeight / sum,
+    costWeight: requested.costWeight / sum,
+    reliabilityWeight: requested.reliabilityWeight / sum,
+    rankingBoostWeight: requested.rankingBoostWeight / sum
+  };
 }
 
 function readMessageContent(content: SovereignApiChatMessage["content"]) {
@@ -609,7 +678,7 @@ async function resolveManualRoleProvider(
   };
 }
 
-async function buildAutoRoleSelection(role: TrinityRole) {
+async function buildAutoRoleSelection(role: TrinityRole, calibration: StaffingCalibration) {
   const candidates = await prisma.agent.findMany({
     where: {
       enabled: true,
@@ -638,12 +707,12 @@ async function buildAutoRoleSelection(role: TrinityRole) {
     const ranking = rankingMap.get(agent.key);
     const rankingBoost = ranking ? clamp01(((ranking.rating || 1000) - 1000) / 400 + 0.5) : 0.5;
     const total =
-      quality * 0.35 +
-      roleFit * 0.22 +
-      latency * 0.18 +
-      cost * 0.1 +
-      reliability * 0.05 +
-      rankingBoost * 0.1;
+      quality * calibration.qualityWeight +
+      roleFit * calibration.roleFitWeight +
+      latency * calibration.latencyWeight +
+      cost * calibration.costWeight +
+      reliability * calibration.reliabilityWeight +
+      rankingBoost * calibration.rankingBoostWeight;
     return {
       agentKey: agent.key,
       total,
@@ -671,6 +740,7 @@ async function resolveStaffingDecision(
   input: SovereignChatCompletionsRequest,
   fallbackProvider: ResolvedProviderConfig
 ): Promise<StaffingDecision> {
+  const calibration = resolveStaffingCalibration();
   const strategy = input.team?.strategy === "manual" ? "manual" : "auto";
   const manual = input.team?.manual_staffing;
   const resolvedProviders: Partial<Record<TrinityRole, ResolvedProviderConfig>> = {};
@@ -735,7 +805,7 @@ async function resolveStaffingDecision(
     }
   } else {
     for (const role of ["drafter", "writer", "judge"] as TrinityRole[]) {
-      const selected = await buildAutoRoleSelection(role);
+      const selected = await buildAutoRoleSelection(role, calibration);
       scoring[role] = selected;
       if (selected.selectedAgentKey) {
         assignments[role] = selected.selectedAgentKey;
@@ -752,6 +822,7 @@ async function resolveStaffingDecision(
     strategy,
     assignments,
     resolvedProviders,
+    calibration,
     scoring,
     group
   };
