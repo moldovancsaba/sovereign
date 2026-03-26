@@ -68,6 +68,16 @@ Supported fields:
 
 Manual staffing is currently applied in `trinity` and `team` modes. Assigned agents must be registered, enabled, `READY`, and runnable (`LOCAL` or `CLOUD`).
 
+`mode=team` now applies explicit group-policy resolution when `team.group_key` is set:
+
+- resolves role defaults (`drafter|writer|judge`) from group membership roles, including active nested groups
+- uses deterministic precedence:
+  - `manual_staffing` overrides
+  - then `group_role_defaults`
+  - then `auto_staffing` (for still-unassigned roles)
+  - then provider fallback
+- returns policy details in `sovereign.metadata.staffing.teamPolicy`
+
 Auto staffing (`team.strategy=auto`, or `mode=auto`) uses deterministic role scoring per role (`drafter`, `writer`, `judge`) with weighted signals:
 
 - quality: 35%

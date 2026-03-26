@@ -258,6 +258,36 @@ async function stageTrinityRunAudit(baseUrl, headers, groupKey) {
   );
 }
 
+async function stageTeamPolicy(baseUrl, headers, groupKey) {
+  const team = await requestJson(`${baseUrl}/api/v1/chat/completions`, {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      mode: "team",
+      provider: "mock",
+      team: {
+        strategy: "manual",
+        group_key: groupKey
+      },
+      messages: [{ role: "user", content: "run team policy resolution with group context" }]
+    })
+  });
+  assert(team.res.status === 200, `team call expected 200, got ${team.res.status}: ${team.text}`);
+  assert(team.json?.sovereign?.mode === "team", "team call must report team mode");
+  assert(
+    team.json?.sovereign?.metadata?.teamStatus === "GROUP_POLICY_TRINITY_MODE",
+    "team call must report GROUP_POLICY_TRINITY_MODE"
+  );
+  assert(
+    team.json?.sovereign?.metadata?.staffing?.teamPolicy?.mode === "group_policy_v1",
+    "team call must include staffing.teamPolicy.mode"
+  );
+  assert(
+    team.json?.sovereign?.metadata?.staffing?.teamPolicy?.sourceGroupKey === groupKey,
+    "team call must include staffing.teamPolicy.sourceGroupKey"
+  );
+}
+
 async function main() {
   const startedAt = Date.now();
   const baseUrl = process.env.SOVEREIGN_E2E_BASE_URL || "http://127.0.0.1:3007";
@@ -300,6 +330,9 @@ async function main() {
 
   await stageTrinityRunAudit(baseUrl, headers, groups.groupAKey);
   summary.stages.trinityRunAudit = { passed: true };
+
+  await stageTeamPolicy(baseUrl, headers, groups.groupAKey);
+  summary.stages.teamPolicy = { passed: true };
 
   summary.durationMs = Date.now() - startedAt;
   console.log(JSON.stringify(summary, null, 2));
