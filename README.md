@@ -167,6 +167,29 @@ or
 
 Optional slow step: `DESKTOP_BUILD_THEIA_ELECTRON=1 npm run desktop:install-app` also builds the Theia Electron shell (not required for the WebKit launcher).
 
+### One-command macOS install
+
+For a fresh Mac (after cloning the repo), run from repo root:
+
+```bash
+cd /Users/moldovancsaba/Projects/sovereign
+npm run install:macos
+```
+
+What it does:
+
+- checks required tools (`node`, `npm`, `docker`, `swiftc`)
+- installs app dependencies
+- starts local Postgres container
+- bootstraps `.env`, Prisma client/migrations, seed data, and runtime doctor
+- installs `Sovereign.app`
+- starts app + worker in background (`/tmp/sovereign-dev.log`, `/tmp/sovereign-worker.log`)
+
+Optional flags:
+
+- `SKIP_DESKTOP_INSTALL=1 npm run install:macos`
+- `SKIP_START=1 npm run install:macos`
+
 ## Launch Modes
 
 - Local web/dev app: `http://127.0.0.1:3007`

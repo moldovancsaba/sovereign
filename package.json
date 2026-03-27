@@ -28,6 +28,7 @@
     "prisma:migrate:deploy": "npm --prefix apps/sovereign run prisma:migrate:deploy",
     "db:up": "docker compose up -d sovereign-db",
     "db:down": "docker compose stop sovereign-db",
+    "install:macos": "bash scripts/install-sovereign-macos.sh",
     "bootstrap": "npm run install:app && npm run prisma:generate",
     "memory:verify": "npm --prefix apps/sovereign run memory:verify"
   }
