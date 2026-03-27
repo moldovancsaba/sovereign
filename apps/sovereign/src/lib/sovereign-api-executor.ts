@@ -112,11 +112,24 @@ type StaffingCalibration = {
   rankingBoostWeight: number;
 };
 
+type TeamPolicyContext = {
+  mode: "group_policy_v1";
+  applied: boolean;
+  sourceGroupKey: string | null;
+  sourceGroupId: string | null;
+  directMemberCount: number;
+  nestedGroupsVisited: number;
+  roleDefaults: Partial<Record<TrinityRole, string>>;
+  unresolvedRoles: TrinityRole[];
+  precedence: Array<"manual_staffing" | "group_role_defaults" | "auto_staffing" | "fallback_provider">;
+};
+
 type StaffingDecision = {
   strategy: "manual" | "auto";
   assignments: Partial<Record<TrinityRole, string>>;
   resolvedProviders: Partial<Record<TrinityRole, ResolvedProviderConfig>>;
   calibration: StaffingCalibration;
+  teamPolicy?: TeamPolicyContext;
   scoring?: Record<
     TrinityRole,
     {
@@ -678,6 +691,66 @@ async function resolveManualRoleProvider(
   };
 }
 
+function normalizeGroupRole(role: string | null | undefined): TrinityRole | null {
+  const normalized = normalizeText(role).toLowerCase();
+  if (normalized === "drafter" || normalized === "writer" || normalized === "judge") return normalized;
+  return null;
+}
+
+async function resolveGroupRoleDefaults(groupId: string) {
+  const visited = new Set<string>();
+  let nestedGroupsVisited = 0;
+  const defaults: Partial<Record<TrinityRole, string>> = {};
+  const firstLevel = await prisma.$queryRaw<
+    Array<{ memberType: string; memberAgentKey: string | null; memberGroupId: string | null; role: string | null }>
+  >(
+    Prisma.sql`
+      SELECT "memberType", "memberAgentKey", "memberGroupId", "role"
+      FROM "AgentGroupMember"
+      WHERE "groupId" = ${groupId}
+      ORDER BY "createdAt" ASC
+    `
+  );
+  const directMemberCount = firstLevel.length;
+
+  const walkGroup = async (currentGroupId: string, depth: number): Promise<void> => {
+    if (depth > 6) return;
+    if (visited.has(currentGroupId)) return;
+    visited.add(currentGroupId);
+    const members = await prisma.$queryRaw<
+      Array<{ memberType: string; memberAgentKey: string | null; memberGroupId: string | null; role: string | null }>
+    >(
+      Prisma.sql`
+        SELECT "memberType", "memberAgentKey", "memberGroupId", "role"
+        FROM "AgentGroupMember"
+        WHERE "groupId" = ${currentGroupId}
+        ORDER BY "createdAt" ASC
+      `
+    );
+    for (const member of members) {
+      const role = normalizeGroupRole(member.role);
+      if (member.memberType === "AGENT" && role && member.memberAgentKey && !defaults[role]) {
+        defaults[role] = member.memberAgentKey;
+        continue;
+      }
+      if (member.memberType !== "GROUP" || !member.memberGroupId) continue;
+      const childRows = await prisma.$queryRaw<Array<{ id: string }>>(
+        Prisma.sql`SELECT "id" FROM "AgentGroup" WHERE "id" = ${member.memberGroupId} AND "active" = true LIMIT 1`
+      );
+      if (!childRows.length) continue;
+      nestedGroupsVisited += 1;
+      await walkGroup(member.memberGroupId, depth + 1);
+    }
+  };
+
+  await walkGroup(groupId, 0);
+  return {
+    directMemberCount,
+    nestedGroupsVisited,
+    roleDefaults: defaults
+  };
+}
+
 async function buildAutoRoleSelection(role: TrinityRole, calibration: StaffingCalibration) {
   const candidates = await prisma.agent.findMany({
     where: {
@@ -751,6 +824,7 @@ async function resolveStaffingDecision(
     judge: { selectedAgentKey: null, evaluated: [] }
   };
   let group: StaffingDecision["group"] = null;
+  let teamPolicy: TeamPolicyContext | undefined;
 
   const requestedGroupKey = normalizeText(input.team?.group_key);
   if (requestedGroupKey) {
@@ -791,6 +865,35 @@ async function resolveStaffingDecision(
       id: selected.id,
       memberCount
     };
+    if (input.mode === "team") {
+      const defaults = await resolveGroupRoleDefaults(selected.id);
+      teamPolicy = {
+        mode: "group_policy_v1",
+        applied: true,
+        sourceGroupKey: selected.key,
+        sourceGroupId: selected.id,
+        directMemberCount: defaults.directMemberCount,
+        nestedGroupsVisited: defaults.nestedGroupsVisited,
+        roleDefaults: defaults.roleDefaults,
+        unresolvedRoles: (["drafter", "writer", "judge"] as TrinityRole[]).filter(
+          (role) => !defaults.roleDefaults[role]
+        ),
+        precedence: ["manual_staffing", "group_role_defaults", "auto_staffing", "fallback_provider"]
+      };
+    }
+  }
+
+  if (teamPolicy?.roleDefaults) {
+    for (const role of ["drafter", "writer", "judge"] as TrinityRole[]) {
+      const fromGroup = teamPolicy.roleDefaults[role];
+      if (!fromGroup) continue;
+      try {
+        assignments[role] = fromGroup;
+        resolvedProviders[role] = await resolveManualRoleProvider(role, fromGroup);
+      } catch {
+        delete assignments[role];
+      }
+    }
   }
 
   if (strategy === "manual") {
@@ -805,6 +908,7 @@ async function resolveStaffingDecision(
     }
   } else {
     for (const role of ["drafter", "writer", "judge"] as TrinityRole[]) {
+      if (resolvedProviders[role]) continue;
       const selected = await buildAutoRoleSelection(role, calibration);
       scoring[role] = selected;
       if (selected.selectedAgentKey) {
@@ -817,12 +921,18 @@ async function resolveStaffingDecision(
   for (const role of ["drafter", "writer", "judge"] as TrinityRole[]) {
     if (!resolvedProviders[role]) resolvedProviders[role] = fallbackProvider;
   }
+  if (teamPolicy) {
+    teamPolicy.unresolvedRoles = (["drafter", "writer", "judge"] as TrinityRole[]).filter(
+      (role) => !assignments[role]
+    );
+  }
 
   return {
     strategy,
     assignments,
     resolvedProviders,
     calibration,
+    teamPolicy,
     scoring,
     group
   };
@@ -1171,7 +1281,7 @@ export async function executeSovereignChatCompletion(
       mode: "team",
       metadata: {
         ...(trinityResult.metadata || {}),
-        teamStatus: "TRINITY_BACKED_TEAM_MODE"
+        teamStatus: "GROUP_POLICY_TRINITY_MODE"
       }
     };
   }
