@@ -8,7 +8,7 @@ import { resolveRuntimeConfigForTask } from "@/lib/runtime-config";
 import { applyRoleRankingOutcome, getRoleRankingMap } from "@/lib/agent-role-ranking";
 
 export type SovereignApiMode = "direct" | "trinity" | "team" | "auto";
-export type SovereignApiProvider = "local" | "cloud" | "auto" | "mock";
+export type SovereignApiProvider = "local" | "cloud" | "mlx" | "auto" | "mock";
 
 export type SovereignApiChatMessage = {
   role: "system" | "user" | "assistant";
@@ -36,7 +36,7 @@ export type SovereignChatCompletionsRequest = {
 export type SovereignExecutionSuccess = {
   id: string;
   mode: SovereignApiMode;
-  provider: "ollama" | "openai-compatible" | "mock";
+  provider: "ollama" | "openai-compatible" | "mlx" | "mock";
   model: string;
   outputText: string;
   finishReason: string;
@@ -71,14 +71,15 @@ export class SovereignApiError extends Error {
 }
 
 type ResolvedProviderConfig = {
-  provider: "ollama" | "openai-compatible" | "mock";
+  provider: "ollama" | "openai-compatible" | "mlx" | "mock";
   endpoint: string;
   model: string;
   apiKey: string | null;
+  capabilityProfile: "ollama-chat-v1" | "openai-chat-v1" | "mlx-openai-chat-v1" | "mock-deterministic-v1";
 };
 
 type ProviderRunResult = {
-  provider: "ollama" | "openai-compatible" | "mock";
+  provider: "ollama" | "openai-compatible" | "mlx" | "mock";
   model: string;
   outputText: string;
   finishReason: string;
@@ -308,23 +309,28 @@ function parseStageResponse(
 function resolveProviderConfig(input: SovereignChatCompletionsRequest): ResolvedProviderConfig {
   const preferred = normalizeText(input.provider || "auto").toLowerCase();
   const mode =
-    preferred === "local" || preferred === "cloud" || preferred === "mock" ? preferred : "auto";
+    preferred === "local" || preferred === "cloud" || preferred === "mlx" || preferred === "mock"
+      ? preferred
+      : "auto";
   if (mode === "mock") {
     return {
       provider: "mock",
       endpoint: "mock://sovereign",
       model: normalizeText(input.model) || "sovereign-mock-v1",
-      apiKey: null
+      apiKey: null,
+      capabilityProfile: "mock-deterministic-v1"
     };
   }
   const localModel = normalizeText(input.model) || sovereignEnvDefault("OLLAMA_MODEL", "deepseek-r1:1.5b");
   const cloudModel = normalizeText(input.model) || sovereignEnvDefault("OPENAI_MODEL", "gpt-4o-mini");
+  const mlxModel = normalizeText(input.model) || sovereignEnvDefault("SOVEREIGN_MLX_MODEL", "mlx-community/Qwen2.5-7B-Instruct-4bit");
   if (mode === "local") {
     return {
       provider: "ollama",
       endpoint: sovereignEnvDefault("OLLAMA_BASE_URL", "http://127.0.0.1:11434").replace(/\/$/, ""),
       model: localModel,
-      apiKey: null
+      apiKey: null,
+      capabilityProfile: "ollama-chat-v1"
     };
   }
   if (mode === "cloud") {
@@ -332,7 +338,17 @@ function resolveProviderConfig(input: SovereignChatCompletionsRequest): Resolved
       provider: "openai-compatible",
       endpoint: sovereignEnvDefault("OPENAI_BASE_URL", "https://api.openai.com/v1").replace(/\/$/, ""),
       model: cloudModel,
-      apiKey: normalizeText(process.env.OPENAI_API_KEY) || null
+      apiKey: normalizeText(process.env.OPENAI_API_KEY) || null,
+      capabilityProfile: "openai-chat-v1"
+    };
+  }
+  if (mode === "mlx") {
+    return {
+      provider: "mlx",
+      endpoint: sovereignEnvDefault("SOVEREIGN_MLX_BASE_URL", "http://127.0.0.1:8080/v1").replace(/\/$/, ""),
+      model: mlxModel,
+      apiKey: normalizeText(process.env.SOVEREIGN_MLX_API_KEY) || null,
+      capabilityProfile: "mlx-openai-chat-v1"
     };
   }
 
@@ -341,7 +357,8 @@ function resolveProviderConfig(input: SovereignChatCompletionsRequest): Resolved
     provider: "ollama",
     endpoint: sovereignEnvDefault("OLLAMA_BASE_URL", "http://127.0.0.1:11434").replace(/\/$/, ""),
     model: localModel,
-    apiKey: null
+    apiKey: null,
+    capabilityProfile: "ollama-chat-v1"
   };
 }
 
@@ -482,6 +499,56 @@ async function runProviderCompletion(
     };
   }
 
+  if (resolved.provider === "mlx") {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json"
+    };
+    if (resolved.apiKey) headers.Authorization = `Bearer ${resolved.apiKey}`;
+    const res = await fetchWithTimeout(`${resolved.endpoint}/chat/completions`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        model: resolved.model,
+        messages,
+        temperature: typeof input.temperature === "number" ? input.temperature : 0.2,
+        max_tokens: typeof input.max_tokens === "number" ? input.max_tokens : undefined
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new SovereignApiError({
+        message: `MLX request failed (${res.status}): ${text || "unknown error"}`,
+        statusCode: 502,
+        type: "api_error",
+        code: "provider_http_error"
+      });
+    }
+    const payload = await res.json();
+    const outputText = normalizeText(payload?.choices?.[0]?.message?.content);
+    if (!outputText) {
+      throw new SovereignApiError({
+        message: "MLX provider returned an empty completion.",
+        statusCode: 502,
+        type: "api_error",
+        code: "empty_provider_response"
+      });
+    }
+    return {
+      provider: resolved.provider,
+      model: String(payload?.model || resolved.model),
+      outputText,
+      finishReason: String(payload?.choices?.[0]?.finish_reason || "stop"),
+      usage:
+        payload?.usage && typeof payload.usage === "object"
+          ? {
+              prompt_tokens: payload.usage.prompt_tokens,
+              completion_tokens: payload.usage.completion_tokens,
+              total_tokens: payload.usage.total_tokens
+            }
+          : undefined
+    };
+  }
+
   if (!resolved.apiKey) {
     throw new SovereignApiError({
       message: "OPENAI_API_KEY is required for cloud provider mode.",
@@ -549,7 +616,10 @@ async function executeDirect(input: SovereignChatCompletionsRequest): Promise<So
     model: result.model,
     outputText: result.outputText,
     finishReason: result.finishReason,
-    usage: result.usage
+    usage: result.usage,
+    metadata: {
+      providerCapabilities: resolved.capabilityProfile
+    }
   };
 }
 
@@ -678,7 +748,8 @@ async function resolveManualRoleProvider(
       provider: "ollama",
       endpoint: resolved.effective.endpoint.replace(/\/$/, ""),
       model: resolved.effective.model,
-      apiKey: null
+      apiKey: null,
+      capabilityProfile: "ollama-chat-v1"
     };
   }
   const apiKeyEnv = normalizeText(resolved.effective.apiKeyEnv);
@@ -687,7 +758,8 @@ async function resolveManualRoleProvider(
     provider: "openai-compatible",
     endpoint: resolved.effective.endpoint.replace(/\/$/, ""),
     model: resolved.effective.model,
-    apiKey: apiKey || null
+    apiKey: apiKey || null,
+    capabilityProfile: "openai-chat-v1"
   };
 }
 

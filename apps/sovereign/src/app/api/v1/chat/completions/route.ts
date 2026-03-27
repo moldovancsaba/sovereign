@@ -89,9 +89,9 @@ function validatePayload(body: unknown): SovereignChatCompletionsRequest {
       param: "mode"
     });
   }
-  if (payload.provider && !["local", "cloud", "auto", "mock"].includes(String(payload.provider))) {
+  if (payload.provider && !["local", "cloud", "mlx", "auto", "mock"].includes(String(payload.provider))) {
     throw new SovereignApiError({
-      message: "provider must be one of local|cloud|auto|mock.",
+      message: "provider must be one of local|cloud|mlx|auto|mock.",
       statusCode: 400,
       type: "invalid_request_error",
       code: "invalid_provider",

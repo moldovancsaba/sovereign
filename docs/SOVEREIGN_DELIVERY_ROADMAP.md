@@ -115,6 +115,7 @@ Implemented now:
 - runtime doctor and local service health
 - durable project-memory capture foundation
 - API v1 LLM-compatible runtime surface (`chat/completions`, `models`, `health`)
+- API v1 provider matrix includes MLX adapter scaffold (`provider=mlx`) with stable timeout/error contract
 - Trinity runtime with staged roles, confidence policy, and bounded retries
 - persisted Trinity run artifacts + query endpoints
 - workforce foundations: group registry, nested-member cycle guard, manual/auto staffing
@@ -125,7 +126,7 @@ Partially implemented:
 
 - command-center transcript final-judgement semantics
 - desktop-shell transition to Theia
-- provider abstraction beyond Ollama/OpenAI-compatible/mock
+- deeper provider abstraction beyond Ollama/OpenAI-compatible/mock/MLX-scaffold
 - memory retrieval, annotation, and review
 - advanced ranking calibration and adaptive staffing policy tuning
 

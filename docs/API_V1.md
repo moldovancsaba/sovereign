@@ -52,8 +52,9 @@ Request example:
 Supported fields:
 
 - `mode`: `direct | trinity | team | auto`
-- `provider`: `local | cloud | auto | mock`
+- `provider`: `local | cloud | mlx | auto | mock`
   - `mock` is available for deterministic local testing (no external runtime call)
+  - `mlx` is an OpenAI-compatible MLX adapter scaffold (Apple Silicon target)
 - `model`: optional explicit model id
 - `temperature`: optional number
 - `max_tokens`: optional positive integer
@@ -97,6 +98,19 @@ Calibration can be tuned via env vars. Any negative/invalid values are clamped s
 - `SOVEREIGN_STAFFING_WEIGHT_RANKING_BOOST`
 
 Selection rationale is returned in `sovereign.metadata.staffing` and persisted into Trinity run metadata.
+
+## Provider Matrix (v1.1.1 hardening)
+
+- `local` -> implemented (`ollama` `/api/chat`)
+- `cloud` -> implemented (`openai-compatible` `/chat/completions`)
+- `mock` -> implemented (deterministic stage contract testing)
+- `mlx` -> scaffolded (`/chat/completions`, OpenAI-compatible contract, timeout/error mapping preserved)
+
+MLX runtime env knobs:
+
+- `SOVEREIGN_MLX_BASE_URL` (default `http://127.0.0.1:8080/v1`)
+- `SOVEREIGN_MLX_MODEL`
+- `SOVEREIGN_MLX_API_KEY` (optional)
 
 ### Agent Group APIs
 
