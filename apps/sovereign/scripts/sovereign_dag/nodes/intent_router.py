@@ -38,7 +38,7 @@ def run_intent_router(payload: SovereignStatePayload) -> SovereignStatePayload:
             model=MODEL_NAME,
             response_model=IntentClassification,
             messages=[
-                {"role": "system", "content": "You are a precise classifier for the Sovereign DAG. You MUST return ONLY a valid JSON object. Do not include any preamble or markdown formatting other than the JSON itself."},
+                {"role": "system", "content": "You are a precise classifier for the Sovereign DAG. Output ONLY raw JSON. No markdown backticks, no 'RESPONSE:' labels, no preamble. Start with '{' and end with '}'."},
                 {"role": "user", "content": f"User Intent: {raw_intent}"}
             ]
         )

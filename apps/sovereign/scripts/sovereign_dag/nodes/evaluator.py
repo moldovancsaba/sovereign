@@ -46,7 +46,7 @@ def run_evaluator(payload: SovereignStatePayload) -> SovereignStatePayload:
             model=MODEL_NAME,
             response_model=LLMDimensions,
             messages=[
-                {"role": "system", "content": "You are a harsh but fair judge for the Sovereign platform. You MUST return ONLY a valid JSON object. Do not include any preamble or markdown formatting other than the JSON itself."},
+                {"role": "system", "content": "You are a harsh but fair judge. Output ONLY raw JSON. No markdown backticks, no preamble. Start with '{' and end with '}'."},
                 {"role": "user", "content": f"INTENT: {payload.task_profile.intent_raw}\nARTIFACT:\n{payload.draft_payload.content}"}
             ]
         )

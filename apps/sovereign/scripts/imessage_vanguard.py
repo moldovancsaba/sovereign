@@ -67,9 +67,14 @@ def send_imessage(handle, text):
     """Execute AppleScript to send iMessage."""
     logger.info(f"Sending response to {handle}...")
     # Escape double quotes for AppleScript
-    safe_text = text.replace('"', '\\"')
-    # AppleScript to send iMessage
-    script = f'tell application "Messages" to send "{safe_text}" to buddy "{handle}" of service "E:imessage"'
+    safe_text = text.replace('"', '\\"').replace('\n', '\\r')
+    # Use a more robust participant search script
+    script = f'''
+    tell application "Messages"
+        set targetBuddy to buddy "{handle}" of (service 1 whose service type is iMessage)
+        send "{safe_text}" to targetBuddy
+    end tell
+    '''
     try:
         subprocess.run(["osascript", "-e", script], check=True, capture_output=True)
         return True
