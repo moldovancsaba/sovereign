@@ -99,7 +99,7 @@ export function BacklogBoardClient(props: {
         {props.columns.map((status) => (
           <div
             key={status}
-            className="min-w-[260px] flex-shrink-0 rounded-lg border border-white/10 bg-white/5 p-3"
+            className="ds-well min-w-[260px] flex-shrink-0 p-3"
           >
             <div className="mb-2 text-sm font-medium text-white/90">
               {STATUS_LABELS[status] ?? status}

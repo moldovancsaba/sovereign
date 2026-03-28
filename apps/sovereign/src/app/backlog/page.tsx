@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Shell } from "@/components/Shell";
 import { requireSession } from "@/lib/session";
@@ -40,6 +41,13 @@ export default async function BacklogPage() {
       title="Backlog"
       subtitle="Read-only view. Create, update, and prioritise items via chat with the agent."
     >
+      <p className="mb-4 text-xs text-white/55">
+        Multi-product planning: open{" "}
+        <Link href="/products" className="text-[color:var(--accent)] underline-offset-2 hover:underline">
+          Products
+        </Link>{" "}
+        from the Menu.
+      </p>
       <BacklogBoardClient
         boardId={board.id}
         boardName={board.name}

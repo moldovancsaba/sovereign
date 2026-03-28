@@ -60,8 +60,8 @@ else
 fi
 
 # Open primary web entrypoints
-"$OPEN_BIN" "http://127.0.0.1:3007/chat" >/dev/null 2>&1 || true
-"$OPEN_BIN" "http://127.0.0.1:3007/nexus" >/dev/null 2>&1 || true
+"$OPEN_BIN" "http://localhost:3007/chat" >/dev/null 2>&1 || true
+"$OPEN_BIN" "http://localhost:3007/nexus" >/dev/null 2>&1 || true
 
 echo "Sovereign workspace launch requested."
 echo "1) LaunchAgents restarted: Ollama + Sovereign"

@@ -12,6 +12,13 @@
   --warn: #ffcc66;
   --bad: #ff6b6b;
   --accent: #86a8ff;
+  --surface-card: rgba(255, 255, 255, 0.05);
+  --surface-deep: rgba(0, 0, 0, 0.25);
+  --surface-code: rgba(0, 0, 0, 0.3);
+  --surface-code-dense: rgba(0, 0, 0, 0.5);
+  --border-faint: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(255, 255, 255, 0.15);
+  --shadow-elevated: 0 30px 120px rgba(0, 0, 0, 0.45);
   --font-sans: "IBM Plex Sans", "Aptos", ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", "SF Mono", ui-monospace,
@@ -33,5 +40,219 @@ body {
 }
 
 ::selection {
-  background: rgba(134, 168, 255, 0.35);
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* Design system v1 — see docs/DESIGN_SYSTEM_V1.md */
+@layer components {
+  .ds-card {
+    border-radius: 1rem;
+    border: 1px solid var(--stroke);
+    background: var(--surface-card);
+    /* Visible lift vs flat page — design system v1 signature (see docs/DESIGN_SYSTEM_V1.md) */
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.04) inset,
+      0 4px 24px rgba(0, 0, 0, 0.2);
+  }
+
+  .ds-panel-deep {
+    border-radius: 1rem;
+    border: 1px solid var(--stroke);
+    background: var(--surface-deep);
+  }
+
+  .ds-card-prominent {
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .ds-inset {
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-medium);
+    background: var(--surface-code);
+  }
+
+  .ds-inset-dense {
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-medium);
+    background: var(--surface-code-dense);
+  }
+
+  .ds-shell-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid var(--border-faint);
+    background: color-mix(in srgb, var(--bg0) 85%, transparent);
+    backdrop-filter: blur(12px);
+  }
+
+  .ds-shell-nav-mobile {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 0.5rem 1rem;
+  }
+
+  @media (min-width: 1024px) {
+    .ds-shell-nav-mobile {
+      display: none;
+    }
+  }
+
+  .ds-main {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 80rem;
+    padding: 2rem 1rem;
+  }
+
+  /* Chat / work-first surfaces: tighter top padding under header */
+  .ds-main-work {
+    padding-top: 1rem;
+    padding-bottom: 2rem;
+  }
+
+  .ds-page-head {
+    margin-bottom: 2rem;
+    border-left: 3px solid color-mix(in srgb, var(--accent) 92%, transparent);
+    padding-left: 1.25rem;
+  }
+
+  .ds-page-title {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    color: var(--text);
+  }
+
+  .ds-page-subtitle {
+    margin-top: 0.375rem;
+    max-width: 48rem;
+    font-size: 0.875rem;
+    line-height: 1.625;
+    color: var(--muted);
+  }
+
+  .ds-nav-item {
+    border-radius: 0.5rem;
+    padding: 0.375rem 0.625rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--muted);
+    transition:
+      color 150ms ease,
+      background-color 150ms ease;
+  }
+
+  .ds-nav-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text);
+  }
+
+  .ds-nav-item-active {
+    border-radius: 0.5rem;
+    padding: 0.375rem 0.625rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.15),
+      0 0 20px -6px color-mix(in srgb, var(--accent) 55%, transparent);
+    transition:
+      color 150ms ease,
+      background-color 150ms ease,
+      box-shadow 150ms ease;
+  }
+
+  .ds-nav-item-active:hover {
+    background: rgba(255, 255, 255, 0.14);
+  }
+
+  .ds-btn-secondary {
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-medium);
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    transition: background-color 150ms ease;
+  }
+
+  .ds-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .ds-btn-secondary.ds-btn-compact {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .ds-btn-ghost {
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-medium);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.9);
+    transition: background-color 150ms ease;
+  }
+
+  .ds-btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .ds-status-local {
+    border-radius: 9999px;
+    border: 1px solid rgba(52, 211, 153, 0.2);
+    background: rgba(16, 185, 129, 0.12);
+    padding: 0.25rem 0.625rem;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: rgba(167, 243, 208, 0.9);
+  }
+
+  .ds-text-muted {
+    color: var(--muted);
+  }
+
+  /* Compact surfaces (columns, wells, hints) */
+  .ds-well {
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface-card);
+  }
+
+  .ds-hint {
+    border-radius: 0.75rem;
+    border: 1px solid var(--stroke);
+    background: var(--surface-card);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--muted);
+  }
+
+  .ds-tile {
+    border-radius: 0.75rem;
+    border: 1px solid var(--stroke);
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.75rem 1rem;
+    transition: background-color 150ms ease;
+  }
+
+  .ds-tile:hover {
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  .ds-pill-deep {
+    border-radius: 9999px;
+    border: 1px solid var(--stroke);
+    background: var(--surface-deep);
+    padding: 0.125rem 0.5rem;
+  }
 }

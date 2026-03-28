@@ -25,8 +25,10 @@ Contributors must assume this stack and boundary model:
 
 Read first:
 
-- [`/Users/moldovancsaba/Projects/sovereign/docs/architecture/0001-theia-desktop-foundation.md`](/Users/moldovancsaba/Projects/sovereign/docs/architecture/0001-theia-desktop-foundation.md)
-- [`/Users/moldovancsaba/Projects/sovereign/docs/architecture/0002-rock-solid-open-source-hardening.md`](/Users/moldovancsaba/Projects/sovereign/docs/architecture/0002-rock-solid-open-source-hardening.md)
+- [docs/ARCHITECTURE_OVERVIEW.md](docs/ARCHITECTURE_OVERVIEW.md) — how layers and docs fit together
+- [docs/DESIGN_SYSTEM_V1.md](docs/DESIGN_SYSTEM_V1.md) — UI tokens, shell, and change process
+- [docs/architecture/0001-theia-desktop-foundation.md](docs/architecture/0001-theia-desktop-foundation.md)
+- [docs/architecture/0002-rock-solid-open-source-hardening.md](docs/architecture/0002-rock-solid-open-source-hardening.md)
 
 ## Local Development
 
@@ -34,14 +36,14 @@ Read first:
 2. Start Postgres:
 
 ```bash
-cd /Users/moldovancsaba/Projects/sovereign
+cd <your-sovereign-clone>
 npm run db:up
 ```
 
 3. Prepare app dependencies and Prisma:
 
 ```bash
-cd /Users/moldovancsaba/Projects/sovereign
+cd <your-sovereign-clone>
 npm run install:app
 npm run prisma:generate
 cd apps/sovereign && npx prisma migrate dev
@@ -52,7 +54,7 @@ Deploy-style migrations (no prompts): `npm run prisma:migrate:deploy` from repo 
 4. Start development:
 
 ```bash
-cd /Users/moldovancsaba/Projects/sovereign
+cd <your-sovereign-clone>
 npm run dev
 ```
 
@@ -81,7 +83,7 @@ Good contributions move the product toward:
 Run before pushing when your change touches product code:
 
 ```bash
-cd /Users/moldovancsaba/Projects/sovereign
+cd <your-sovereign-clone>
 npm run verify
 ```
 

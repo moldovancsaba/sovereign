@@ -12,6 +12,7 @@ import {
   getIssueDetails,
   getItemSingleSelectValues,
   getProjectMeta,
+  isGithubGraphqlConfigured,
   reconcileBoardAgentOptions,
   reconcileBoardAgentValue
 } from "@/lib/github";
@@ -147,6 +148,33 @@ export default async function IssuePage(props: {
   const issueNumber = Number(number);
   if (!Number.isFinite(issueNumber)) redirect("/dashboard");
 
+  if (!isGithubGraphqlConfigured()) {
+    return (
+      <Shell title={`Issue #${issueNumber}`} subtitle="GitHub integration is not configured.">
+        <div className="ds-card max-w-xl p-5 text-sm text-white/75">
+          <p>
+            Issue pages read from GitHub Projects (GraphQL). Set{" "}
+            <code className="rounded border border-white/15 bg-black/30 px-1.5 py-0.5 text-xs text-white/90">
+              SOVEREIGN_GITHUB_TOKEN
+            </code>{" "}
+            or{" "}
+            <code className="rounded border border-white/15 bg-black/30 px-1.5 py-0.5 text-xs text-white/90">
+              GITHUB_TOKEN
+            </code>{" "}
+            in <code className="text-xs">apps/sovereign/.env</code>, then restart the dev server. See{" "}
+            <code className="text-xs">.env.example</code> for the full checklist.
+          </p>
+          <Link
+            href="/dashboard"
+            className="mt-4 inline-block text-[color:var(--accent)] underline-offset-2 hover:underline"
+          >
+            Back to dashboard
+          </Link>
+        </div>
+      </Shell>
+    );
+  }
+
   const [meta, issue] = await Promise.all([
     getProjectMeta(),
     getIssueDetails({ issueNumber })
@@ -242,7 +270,7 @@ export default async function IssuePage(props: {
     >
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-6">
-          <div className="rounded-2xl border border-white/12 bg-white/5 p-5">
+          <div className="ds-card p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-lg font-semibold text-white/95">
@@ -278,7 +306,7 @@ export default async function IssuePage(props: {
             )}
           </div>
 
-          <div className="rounded-2xl border border-white/12 bg-white/5 p-5">
+          <div className="ds-card p-5">
             <div className="text-sm font-semibold">Board fields</div>
             <div className="mt-1 text-xs text-white/60">
               Updates go directly to GitHub Project fields.
@@ -386,7 +414,7 @@ export default async function IssuePage(props: {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/12 bg-white/5 p-5">
+          <div className="ds-card p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="text-sm font-semibold">Alpha context lock (MVP)</div>
               {alphaLockSnapshot?.activeWindow ? (
@@ -786,7 +814,7 @@ export default async function IssuePage(props: {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/12 bg-white/5">
+        <div className="ds-card">
           <div className="border-b border-white/10 px-5 py-4">
             <div className="text-sm font-semibold">Issue thread</div>
             <div className="mt-1 text-xs text-white/60">
@@ -911,7 +939,7 @@ export default async function IssuePage(props: {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/12 bg-white/5">
+        <div className="ds-card">
           <div className="border-b border-white/10 px-5 py-4">
             <div className="text-sm font-semibold">Enqueue work</div>
             <div className="mt-1 text-xs text-white/60">

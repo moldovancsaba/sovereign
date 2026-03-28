@@ -2,6 +2,13 @@
 
 These are the UI and UX standards for `{sovereign}`.
 
+**Companion docs (SSOT):**
+
+- **[DESIGN_SYSTEM_V1.md](DESIGN_SYSTEM_V1.md)** — tokens (`globals.css`), shell layout, Tailwind patterns, versioning rules for UI.
+- **[ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md)** — repo layers, boundaries, where UI fits in the system.
+
+Principles align with [agent.meimei design-system-v1](https://github.com/moldovancsaba/agent.meimei/blob/main/design-system-v1.md) and [agent.meimei architecture](https://github.com/moldovancsaba/agent.meimei/blob/main/architecture.md): **one source per concern**, **documented contracts**, **no ad hoc full-page style systems** outside the shared model.
+
 ## Product Context
 
 `{sovereign}` is an operator-facing desktop product for multi-agent work. The UI should feel like a serious local control surface for a team of AI workers, not like a toy chatbot and not like a generic admin dashboard.
@@ -52,10 +59,10 @@ The UI should surface these concepts clearly:
 
 ## Visual Rules
 
-- Use a coherent design system with tokens and reusable primitives.
+- Follow **[DESIGN_SYSTEM_V1.md](DESIGN_SYSTEM_V1.md)** — `:root` tokens in `apps/sovereign/src/app/globals.css`, `Shell` chrome, and shared Tailwind recipes; extend with new components when patterns repeat.
 - Avoid placeholder polish that hides missing system clarity.
 - Keep contrast, hierarchy, and spacing consistent.
-- Distinguish informational, warning, and failure states clearly.
+- Distinguish informational, warning, and failure states clearly (map to `--good` / `--warn` / `--bad` where appropriate).
 
 ## Accessibility Rules
 
@@ -72,3 +79,4 @@ UI work is not done unless:
 - the next recommended action is visible
 - degraded and failed states are understandable
 - the interaction still works in the installed macOS app
+- **DESIGN_SYSTEM_V1** is updated when tokens, shell behaviour, or shared UI contracts change

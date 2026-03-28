@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import fsSync from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 export type AgentSetting = {
@@ -62,7 +63,7 @@ export type SovereignSettings = {
   updatedAt: string;
 };
 
-const DEFAULT_PROJECT_ROOT = "/Users/moldovancsaba/Projects";
+const DEFAULT_PROJECT_ROOT = path.join(os.homedir(), "Projects");
 
 function settingsPath() {
   return path.join(process.cwd(), ".sovereign", "settings.json");

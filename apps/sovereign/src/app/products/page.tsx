@@ -133,7 +133,7 @@ export default async function ProductsPage() {
           Optional planning sync unavailable: {metaError}
         </div>
       ) : null}
-      <div className="mb-4 rounded-2xl border border-white/12 bg-white/5 p-4">
+      <div className="mb-4 ds-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm text-white/75 max-w-4xl">
             This view merges local product settings with optional planning metadata. Runtime truth remains local;
@@ -159,16 +159,16 @@ export default async function ProductsPage() {
           </div>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-white/70">
-          <span className="rounded-full border border-white/12 bg-black/25 px-2 py-0.5">
+          <span className="ds-pill-deep">
             Active products: {activeRows.length}
           </span>
           {planningSyncEnabled ? (
-            <span className="rounded-full border border-white/12 bg-black/25 px-2 py-0.5">
+            <span className="ds-pill-deep">
               Planning cards: {totalCards}
             </span>
           ) : null}
           {planningSyncEnabled ? (
-            <span className="rounded-full border border-white/12 bg-black/25 px-2 py-0.5">
+            <span className="ds-pill-deep">
               Unassigned cards: {unassignedCards}
             </span>
           ) : null}
@@ -188,7 +188,7 @@ export default async function ProductsPage() {
           <Link
             key={row.lower}
             href={`/products/${encodeURIComponent(row.name)}`}
-            className="rounded-2xl border border-white/12 bg-white/5 p-5 hover:bg-white/7"
+            className="ds-card p-5 hover:bg-white/[0.07]"
           >
             <div className="flex items-center justify-between gap-2">
               <div className="text-lg font-semibold">{row.name}</div>
@@ -200,7 +200,7 @@ export default async function ProductsPage() {
               {row.statusCounts.slice(0, 4).map(([status, count]) => (
                 <span
                   key={`${row.lower}:${status}`}
-                  className="rounded-full border border-white/15 bg-black/25 px-2 py-0.5"
+                  className="ds-pill-deep"
                 >
                   {status}: {count}
                 </span>
@@ -231,13 +231,11 @@ export default async function ProductsPage() {
         ))}
       </div>
       {activeRows.length === 0 ? (
-        <div className="mt-4 rounded-xl border border-white/12 bg-white/5 px-3 py-2 text-xs text-white/70">
-          No active product cards found on the board.
-        </div>
+        <div className="mt-4 ds-hint">No active product cards found on the board.</div>
       ) : null}
 
       {configuredNoCardsRows.length > 0 ? (
-        <div className="mt-6 rounded-2xl border border-white/12 bg-white/5 p-5">
+        <div className="mt-6 ds-card p-5">
           <div className="text-sm font-semibold">Configured products without board cards</div>
           <div className="mt-1 text-xs text-white/60">
             These are configured locally but currently have zero cards on the board.

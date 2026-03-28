@@ -2,20 +2,32 @@ import AppKit
 import Foundation
 import WebKit
 
+/// Native shell for local Next.js: readiness is probed via HTTP, then WKWebView loads the app.
+/// `next dev` + Turbopack/RSC may omit `didStart`/`didCommit`/`didFinish` for the main navigation; we always
+/// clear the blocking overlay after a short delay and use RunLoop.common timers so the UI cannot hang on “Opening chat…”.
 final class SovereignDesktopApp: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     private let repoRoot = "__REPO_ROOT__"
     private let appVersion = "__APP_VERSION__"
     private let appPort = 3007
-    private let healthPath = "/chat"
+    private let healthPath = "/api/ready"
     private let defaultPath = "/chat"
+    /// Must match `NEXTAUTH_URL` host (see `bootstrap-local-dev.sh`) or session cookies will not apply in WKWebView.
+    private let appHost = "localhost"
 
     private var window: NSWindow!
     private var webView: WKWebView!
+    private var loadingOverlay: NSView!
     private var statusLabel: NSTextField!
     private var progressIndicator: NSProgressIndicator!
     private var pollTimer: Timer?
+    private var loadWatchdog: Timer?
+    /// Next dev / streaming sometimes never calls `didCommit`/`didFinish`; this always clears the overlay.
+    private var mandatoryRevealWorkItem: DispatchWorkItem?
     private var bootStarted = false
-    private var uiReady = false
+    /// After true, health polling stops issuing duplicate `load` calls.
+    private var chatLoadStarted = false
+    /// After true, loading overlay is dismissed (idempotent).
+    private var mainContentRevealed = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         buildMenu()
@@ -34,12 +46,15 @@ final class SovereignDesktopApp: NSObject, NSApplicationDelegate, WKNavigationDe
 
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
-        webView.isHidden = true
+        webView.isHidden = false
 
-        statusLabel = NSTextField(labelWithString: "Starting {sovereign}...")
+        statusLabel = NSTextField(labelWithString: "Starting Sovereign…")
         statusLabel.font = .systemFont(ofSize: 16, weight: .medium)
         statusLabel.alignment = .center
         statusLabel.textColor = .labelColor
+        statusLabel.maximumNumberOfLines = 4
+        statusLabel.lineBreakMode = .byWordWrapping
+        statusLabel.preferredMaxLayoutWidth = 520
 
         progressIndicator = NSProgressIndicator()
         progressIndicator.style = .spinning
@@ -48,6 +63,8 @@ final class SovereignDesktopApp: NSObject, NSApplicationDelegate, WKNavigationDe
 
         let loadingView = NSView()
         loadingView.translatesAutoresizingMaskIntoConstraints = false
+        loadingView.wantsLayer = true
+        loadingView.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
         progressIndicator.translatesAutoresizingMaskIntoConstraints = false
 
@@ -58,25 +75,29 @@ final class SovereignDesktopApp: NSObject, NSApplicationDelegate, WKNavigationDe
             progressIndicator.centerXAnchor.constraint(equalTo: loadingView.centerXAnchor),
             progressIndicator.centerYAnchor.constraint(equalTo: loadingView.centerYAnchor, constant: -18),
             statusLabel.topAnchor.constraint(equalTo: progressIndicator.bottomAnchor, constant: 14),
-            statusLabel.centerXAnchor.constraint(equalTo: loadingView.centerXAnchor)
+            statusLabel.centerXAnchor.constraint(equalTo: loadingView.centerXAnchor),
+            statusLabel.leadingAnchor.constraint(greaterThanOrEqualTo: loadingView.leadingAnchor, constant: 24),
+            statusLabel.trailingAnchor.constraint(lessThanOrEqualTo: loadingView.trailingAnchor, constant: -24)
         ])
+
+        loadingOverlay = loadingView
 
         let container = NSView()
         container.translatesAutoresizingMaskIntoConstraints = false
         webView.translatesAutoresizingMaskIntoConstraints = false
-        loadingView.translatesAutoresizingMaskIntoConstraints = false
+        loadingOverlay.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(webView)
-        container.addSubview(loadingView)
+        container.addSubview(loadingOverlay)
 
         NSLayoutConstraint.activate([
             webView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             webView.topAnchor.constraint(equalTo: container.topAnchor),
             webView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            loadingView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            loadingView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            loadingView.topAnchor.constraint(equalTo: container.topAnchor),
-            loadingView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+            loadingOverlay.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            loadingOverlay.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            loadingOverlay.topAnchor.constraint(equalTo: container.topAnchor),
+            loadingOverlay.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
 
         window = NSWindow(
@@ -100,6 +121,14 @@ final class SovereignDesktopApp: NSObject, NSApplicationDelegate, WKNavigationDe
 
         let appMenu = NSMenu()
         let appName = "Sovereign"
+        let reloadItem = NSMenuItem(
+            title: "Reload chat",
+            action: #selector(reloadChat),
+            keyEquivalent: "r"
+        )
+        reloadItem.target = self
+        appMenu.addItem(reloadItem)
+        appMenu.addItem(NSMenuItem.separator())
         appMenu.addItem(
             NSMenuItem(
                 title: "Quit \(appName)",
@@ -111,10 +140,26 @@ final class SovereignDesktopApp: NSObject, NSApplicationDelegate, WKNavigationDe
         NSApp.mainMenu = mainMenu
     }
 
+    @objc private func reloadChat() {
+        mainContentRevealed = false
+        chatLoadStarted = false
+        mandatoryRevealWorkItem?.cancel()
+        mandatoryRevealWorkItem = nil
+        loadingOverlay.alphaValue = 1
+        loadingOverlay.isHidden = false
+        statusLabel.isHidden = false
+        progressIndicator.isHidden = false
+        progressIndicator.startAnimation(nil)
+        statusLabel.stringValue = "Reloading chat…"
+        pollTimer?.invalidate()
+        pollTimer = nil
+        beginHealthPolling()
+    }
+
     private func startBootSequenceIfNeeded() {
         guard !bootStarted else { return }
         bootStarted = true
-        statusLabel.stringValue = "Bootstrapping local services..."
+        statusLabel.stringValue = "Bootstrapping local services…"
         DispatchQueue.global(qos: .userInitiated).async {
             let logDir = "\(self.repoRoot)/.sovereign/desktop-app-logs"
             _ = DesktopCore.runShellCapture("mkdir -p '\(logDir)'", workingDirectory: self.repoRoot)
@@ -134,6 +179,7 @@ final class SovereignDesktopApp: NSObject, NSApplicationDelegate, WKNavigationDe
     }
 
     private func beginHealthPolling() {
+        pollTimer?.invalidate()
         pollTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             self?.tickHealth()
         }
@@ -141,39 +187,118 @@ final class SovereignDesktopApp: NSObject, NSApplicationDelegate, WKNavigationDe
     }
 
     private func tickHealth() {
-        let serviceURL = URL(string: "http://127.0.0.1:\(appPort)\(healthPath)")!
-        let chatURL = URL(string: "http://127.0.0.1:\(appPort)\(defaultPath)")!
+        if chatLoadStarted { return }
 
-        var request = URLRequest(url: serviceURL)
-        request.timeoutInterval = 1.5
+        let probeURL = URL(string: "http://\(appHost):\(appPort)\(healthPath)")!
 
-        let task = URLSession.shared.dataTask(with: request) { _, response, _ in
+        var request = URLRequest(url: probeURL)
+        request.timeoutInterval = 5.0
+
+        let task = URLSession.shared.dataTask(with: request) { [weak self] _, response, _ in
             let healthy = (response as? HTTPURLResponse).map { 200..<500 ~= $0.statusCode } ?? false
             DispatchQueue.main.async {
+                guard let self = self, !self.chatLoadStarted else { return }
                 if healthy {
-                    self.statusLabel.stringValue = "Opening {sovereign}..."
-                    if !self.uiReady {
-                        self.uiReady = true
-                        self.webView.load(URLRequest(url: chatURL))
-                    }
+                    self.startChatNavigation()
                 } else {
                     let appUp = DesktopCore.portListening(self.appPort)
                     self.statusLabel.stringValue = appUp
-                        ? "Waiting for {sovereign} sign-in..."
-                        : "Starting {sovereign} unified chat..."
+                        ? "Waiting for Next.js to become ready…"
+                        : "Starting unified chat…"
                 }
             }
         }
         task.resume()
     }
 
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        webView.isHidden = false
+    private func startChatNavigation() {
+        chatLoadStarted = true
+        pollTimer?.invalidate()
+        pollTimer = nil
+        statusLabel.stringValue = "Opening chat…"
+        let chatURL = URL(string: "http://\(appHost):\(appPort)\(defaultPath)")!
+        scheduleLoadWatchdog()
+        scheduleMandatoryRevealAfterLoad()
+        webView.load(URLRequest(url: chatURL))
+    }
+
+    /// Fires even when WebKit omits `didStart`/`didCommit`/`didFinish` (seen with Turbopack + RSC).
+    private func scheduleMandatoryRevealAfterLoad() {
+        mandatoryRevealWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in
+            self?.revealMainContent(reason: "mandatoryDelay")
+        }
+        mandatoryRevealWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: item)
+    }
+
+    private func scheduleLoadWatchdog() {
+        loadWatchdog?.invalidate()
+        let timer = Timer(timeInterval: 12.0, repeats: false) { [weak self] _ in
+            self?.revealMainContent(reason: "watchdog")
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        loadWatchdog = timer
+    }
+
+    /// Dismiss blocking overlay so the WebView is usable. `didCommit` / `didFinish` may both fire.
+    private func revealMainContent(reason: String) {
+        if mainContentRevealed {
+            if reason == "finish" {
+                window?.subtitle = "Unified Chat v\(appVersion)"
+            }
+            return
+        }
+        mainContentRevealed = true
+        mandatoryRevealWorkItem?.cancel()
+        mandatoryRevealWorkItem = nil
+        loadWatchdog?.invalidate()
+        loadWatchdog = nil
+        loadingOverlay.isHidden = true
+        loadingOverlay.alphaValue = 0
         progressIndicator.stopAnimation(nil)
         progressIndicator.isHidden = true
         statusLabel.isHidden = true
-        pollTimer?.invalidate()
-        pollTimer = nil
+        if reason == "watchdog" {
+            window?.subtitle = "Unified Chat v\(appVersion) — if the page looks stuck, press ⌘R (Reload)"
+        } else if reason == "finish" || reason == "mandatoryDelay" || reason == "provisionalStart" || reason == "commit" {
+            window?.subtitle = "Unified Chat v\(appVersion)"
+        }
+    }
+
+    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+        revealMainContent(reason: "provisionalStart")
+    }
+
+    func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+        revealMainContent(reason: "commit")
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        revealMainContent(reason: "finish")
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        presentLoadFailure(error: error)
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        presentLoadFailure(error: error)
+    }
+
+    private func presentLoadFailure(error: Error) {
+        loadWatchdog?.invalidate()
+        loadWatchdog = nil
+        revealMainContent(reason: "error")
+        let alert = NSAlert()
+        alert.messageText = "Could not load the Sovereign web UI"
+        alert.informativeText = error.localizedDescription
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Retry")
+        alert.addButton(withTitle: "Cancel")
+        if alert.runModal() == .alertFirstButtonReturn {
+            reloadChat()
+        }
     }
 }
 

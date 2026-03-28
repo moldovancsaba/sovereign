@@ -1,4 +1,5 @@
 const fs = require("node:fs/promises");
+const os = require("node:os");
 const path = require("node:path");
 require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env") });
 const { PrismaClient } = require("@prisma/client");
@@ -71,7 +72,7 @@ async function writeSettings(settings) {
 
 async function ensureSettingsAgents(agents, resolvedModel) {
   const settings = (await readSettings()) || {
-    localProjectFolder: process.env.SOVEREIGN_LOCAL_PROJECT_ROOT || "/Users/moldovancsaba/Projects",
+    localProjectFolder: process.env.SOVEREIGN_LOCAL_PROJECT_ROOT || path.join(os.homedir(), "Projects"),
     agents: [],
     projects: [],
     commandAccess: [],

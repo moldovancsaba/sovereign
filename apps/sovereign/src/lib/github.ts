@@ -4,11 +4,27 @@ type GraphQLResponse<T> =
   | { data: T; errors?: undefined }
   | { data?: undefined; errors: Array<{ message: string }> };
 
-function getGithubToken() {
-  const token =
-    process.env.SOVEREIGN_GITHUB_TOKEN || process.env.GITHUB_TOKEN || process.env.MVP_PROJECT_TOKEN;
+const GITHUB_TOKEN_MISSING =
+  "Missing GitHub token. Set SOVEREIGN_GITHUB_TOKEN or GITHUB_TOKEN.";
+
+/** Non-throwing: use to gate UI before calling GraphQL helpers. */
+export function resolveGithubGraphqlToken(): string | undefined {
+  const raw =
+    process.env.SOVEREIGN_GITHUB_TOKEN ||
+    process.env.GITHUB_TOKEN ||
+    process.env.MVP_PROJECT_TOKEN;
+  const t = String(raw || "").trim();
+  return t || undefined;
+}
+
+export function isGithubGraphqlConfigured(): boolean {
+  return Boolean(resolveGithubGraphqlToken());
+}
+
+function requireGithubToken(): string {
+  const token = resolveGithubGraphqlToken();
   if (!token) {
-    throw new Error("Missing GitHub token. Set SOVEREIGN_GITHUB_TOKEN or GITHUB_TOKEN.");
+    throw new Error(GITHUB_TOKEN_MISSING);
   }
   return token;
 }
@@ -20,7 +36,7 @@ async function ghGraphQL<T>(
   const res = await fetch("https://api.github.com/graphql", {
     method: "POST",
     headers: {
-      Authorization: `bearer ${getGithubToken()}`,
+      Authorization: `bearer ${requireGithubToken()}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({ query, variables }),

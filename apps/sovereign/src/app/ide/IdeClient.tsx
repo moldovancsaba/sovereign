@@ -325,7 +325,7 @@ export function IdeClient(props: {
 
   return (
     <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
-      <section className="rounded-2xl border border-white/12 bg-black/25 p-3">
+      <section className="ds-panel-deep p-3">
         <div className="mb-2 text-xs text-white/60">Workspace: {props.workspaceRoot}</div>
         <div className="mb-3 rounded-xl border border-cyan-300/20 bg-cyan-300/10 p-2">
           <div className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100/80">
@@ -410,7 +410,7 @@ export function IdeClient(props: {
       </section>
 
       <section className="space-y-4">
-        <div className="rounded-2xl border border-white/12 bg-black/25 p-3">
+        <div className="ds-panel-deep p-3">
           <div className="mb-2 flex items-center justify-between">
             <div className="text-sm font-semibold">Editor (Monaco)</div>
             <div className="flex gap-2">
@@ -448,19 +448,19 @@ export function IdeClient(props: {
         </div>
 
         <div className="grid gap-4 xl:grid-cols-2">
-          <div className="rounded-2xl border border-white/12 bg-black/25 p-3">
+          <div className="ds-panel-deep p-3">
             <div className="mb-2 text-sm font-semibold">Git Diff</div>
             {showInlineDiff ? (
               <div className="mb-2 rounded border border-white/10 bg-black/30 p-2 text-xs text-white/70">
                 Side-by-side diff view is enabled below.
               </div>
             ) : null}
-            <pre className="max-h-[24vh] overflow-auto rounded-lg border border-white/15 bg-black/50 p-3 text-xs text-white/85">
+            <pre className="ds-inset-dense max-h-[24vh] overflow-auto p-3 text-xs text-white/85">
               {gitDiffOut || "Click Git diff after selecting a file."}
             </pre>
           </div>
 
-          <div className="rounded-2xl border border-white/12 bg-black/25 p-3">
+          <div className="ds-panel-deep p-3">
             <div className="mb-2 text-sm font-semibold">Agent Handoff</div>
             <div className="mb-2 flex gap-2">
               <button
@@ -509,12 +509,12 @@ export function IdeClient(props: {
             <textarea
               value={handoffContext}
               onChange={(e) => setHandoffContext(e.target.value)}
-              className="h-[16vh] w-full rounded-lg border border-white/15 bg-black/40 p-3 text-xs"
+              className="ds-inset h-[16vh] w-full p-3 text-xs"
             />
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/12 bg-black/25 p-3">
+        <div className="ds-panel-deep p-3">
           <div className="mb-2 flex items-center justify-between">
             <div className="text-sm font-semibold">Project Memory</div>
             <button
@@ -576,7 +576,7 @@ export function IdeClient(props: {
         </div>
 
         {showInlineDiff ? (
-          <div className="rounded-2xl border border-white/12 bg-black/25 p-3">
+          <div className="ds-panel-deep p-3">
             <div className="mb-2 text-sm font-semibold">Inline Diff (HEAD vs working copy)</div>
             <DiffEditor
               height="34vh"
@@ -594,7 +594,7 @@ export function IdeClient(props: {
           </div>
         ) : null}
 
-        <div className="rounded-2xl border border-white/12 bg-black/25 p-3">
+        <div className="ds-panel-deep p-3">
           <div className="mb-2 text-sm font-semibold">Terminal</div>
           <div className="mb-2 flex gap-2">
             <input
@@ -636,12 +636,12 @@ export function IdeClient(props: {
               />
             ) : null}
           </div>
-          <pre className="max-h-[24vh] overflow-auto rounded-lg border border-white/15 bg-black/50 p-3 text-xs text-white/85">
+          <pre className="ds-inset-dense max-h-[24vh] overflow-auto p-3 text-xs text-white/85">
             {terminalOut || "No output yet."}
           </pre>
         </div>
 
-        <div className="rounded-2xl border border-white/12 bg-black/25 p-2 text-xs text-white/70">
+        <div className="ds-panel-deep p-2 text-xs text-white/70">
           {isPending ? "Working..." : status || "Ready."}
           {allowedPrefixes.length ? (
             <div className="mt-1 text-[11px] text-white/55">

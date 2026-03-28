@@ -362,7 +362,7 @@ async function stageRetryBudgetExhausted(baseUrl, headers) {
 
 async function main() {
   const startedAt = Date.now();
-  const baseUrl = process.env.SOVEREIGN_E2E_BASE_URL || "http://127.0.0.1:3007";
+  const baseUrl = process.env.SOVEREIGN_E2E_BASE_URL || "http://localhost:3007";
   const token = process.env.SOVEREIGN_API_TOKEN || "";
   const headers = token
     ? {

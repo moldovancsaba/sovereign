@@ -34,7 +34,7 @@ export default async function NexusPage() {
       subtitle="External benchmark workflows and role mapping for {sovereign}. Prefer Chat for day-to-day control."
     >
       <div className="space-y-4">
-        <section className="rounded-2xl border border-white/12 bg-black/25 p-4">
+        <section className="ds-panel-deep p-4">
           <div className="text-sm font-semibold">Role Mapping</div>
           <div className="mt-2 text-xs text-white/75">
             Drafter: <span className="font-mono">@{mapping.drafterKey}</span> | Writer: <span className="font-mono">@{mapping.writerKey}</span> | Controller: <span className="font-mono">@{mapping.controllerKey}</span>
@@ -44,7 +44,7 @@ export default async function NexusPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-white/12 bg-black/25 p-4">
+        <section className="ds-panel-deep p-4">
           <div className="text-sm font-semibold">Model Routing</div>
           <pre className="mt-2 overflow-auto rounded-xl border border-white/10 bg-black/40 p-3 text-xs text-white/80">
 {JSON.stringify(modelRouting, null, 2)}
@@ -79,7 +79,7 @@ export default async function NexusPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-white/12 bg-black/25 p-4">
+        <section className="ds-panel-deep p-4">
           <div className="text-sm font-semibold">Last Run</div>
           {!lastRun ? (
             <div className="mt-2 text-xs text-white/65">No run artifact yet.</div>

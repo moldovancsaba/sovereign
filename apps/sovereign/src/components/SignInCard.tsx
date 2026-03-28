@@ -4,18 +4,18 @@ import { signIn } from "next-auth/react";
 
 export function SignInCard(props: { githubEnabled: boolean; devEnabled: boolean }) {
   return (
-    <div className="rounded-2xl border border-white/12 bg-white/5 p-6 shadow-[0_30px_120px_rgba(0,0,0,0.45)]">
-      <div className="text-sm text-white/70">Authentication</div>
+    <div className="ds-card ds-card-prominent p-6">
+      <div className="ds-text-muted text-sm">Authentication</div>
 
       {props.githubEnabled ? (
         <>
           <div className="mt-2 text-lg font-semibold">GitHub</div>
-          <div className="mt-2 text-sm text-white/70">
+          <div className="ds-text-muted mt-2 text-sm">
             Recommended. Later we can add your SSO as a second provider.
           </div>
           <button
             type="button"
-            className="mt-5 w-full rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white/90 hover:bg-white/15"
+            className="ds-btn-secondary mt-5 w-full"
             onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
           >
             Continue with GitHub
@@ -27,13 +27,13 @@ export function SignInCard(props: { githubEnabled: boolean; devEnabled: boolean 
         <>
           <div className={props.githubEnabled ? "mt-6" : "mt-2"} />
           <div className="text-lg font-semibold">Dev Login</div>
-          <div className="mt-2 text-sm text-white/70">
+          <div className="ds-text-muted mt-2 text-sm">
             Enabled because `SOVEREIGN_DEV_LOGIN_PASSWORD` is set. Use this only on your local
             machine.
           </div>
           <button
             type="button"
-            className="mt-5 w-full rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white/90 hover:bg-white/15"
+            className="ds-btn-secondary mt-5 w-full"
             onClick={() => signIn("sovereign-dev", { callbackUrl: "/dashboard" })}
           >
             Continue with Dev Login
@@ -42,7 +42,7 @@ export function SignInCard(props: { githubEnabled: boolean; devEnabled: boolean 
       ) : null}
 
       {!props.githubEnabled && !props.devEnabled ? (
-        <div className="mt-4 text-sm text-white/70">
+        <div className="ds-text-muted mt-4 text-sm">
           No auth providers configured. Set GitHub OAuth (`GITHUB_CLIENT_ID` /
           `GITHUB_CLIENT_SECRET`) or enable dev login (`SOVEREIGN_DEV_LOGIN_PASSWORD`).
         </div>

@@ -1,7 +1,7 @@
 {
   "name": "sovereign-repo",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.2.0-brain",
   "description": "{sovereign} product repository",
   "workspaces": [
     "apps/sovereign"
@@ -20,6 +20,8 @@
     "desktop:watch": "npm --prefix tools/theia-desktop run watch",
     "desktop:install-app": "bash tools/macos/SovereignDesktop/install_SovereignDesktop.sh",
     "menubar:install": "bash tools/macos/SovereignMenubar/install_SovereignMenubar.sh",
+    "vanguard:run": "cd apps/sovereign && ./scripts/sovereign_dag/.venv/bin/python ./scripts/discord_vanguard.py",
+    "nexus:bridge": "cd apps/sovereign && ./scripts/sovereign_dag/.venv/bin/python ./scripts/nexus-bridge-dag.py",
     "service:install": "bash apps/sovereign/scripts/launcher/sovereign-daemon-install.sh",
     "service:status": "bash apps/sovereign/scripts/launcher/sovereign-daemon-status.sh",
     "service:uninstall": "bash apps/sovereign/scripts/launcher/sovereign-daemon-uninstall.sh",

@@ -7,10 +7,10 @@ final class SovereignMenubarApp: NSObject, NSApplicationDelegate {
 
     private let productItem = NSMenuItem(title: "Sovereign v__APP_VERSION__", action: nil, keyEquivalent: "")
     private let appItem = NSMenuItem(title: "App: checking...", action: nil, keyEquivalent: "")
-    private let workerItem = NSMenuItem(title: "Worker: checking...", action: nil, keyEquivalent: "")
+    private let bridgeItem = NSMenuItem(title: "Bridge: checking...", action: nil, keyEquivalent: "")
+    private let vanguardItem = NSMenuItem(title: "Vanguard: checking...", action: nil, keyEquivalent: "")
     private let ollamaItem = NSMenuItem(title: "Ollama: checking...", action: nil, keyEquivalent: "")
-    private let launchdItem = NSMenuItem(title: "Launchd: checking...", action: nil, keyEquivalent: "")
-    private let activeAgentsItem = NSMenuItem(title: "Agents: checking...", action: nil, keyEquivalent: "")
+    private let launchdItem = NSMenuItem(title: "Persistence: checking...", action: nil, keyEquivalent: "")
     private let detailsItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let basicsHeaderItem = NSMenuItem(title: "--- Basics ---", action: nil, keyEquivalent: "")
     private let advancedHeaderItem = NSMenuItem(title: "--- Advanced ---", action: nil, keyEquivalent: "")
@@ -24,20 +24,20 @@ final class SovereignMenubarApp: NSObject, NSApplicationDelegate {
 
         productItem.isEnabled = false
         appItem.isEnabled = false
-        workerItem.isEnabled = false
+        bridgeItem.isEnabled = false
+        vanguardItem.isEnabled = false
         ollamaItem.isEnabled = false
         launchdItem.isEnabled = false
-        activeAgentsItem.isEnabled = false
         detailsItem.isEnabled = false
         basicsHeaderItem.isEnabled = false
         advancedHeaderItem.isEnabled = false
 
         menu.addItem(productItem)
         menu.addItem(appItem)
-        menu.addItem(workerItem)
+        menu.addItem(bridgeItem)
+        menu.addItem(vanguardItem)
         menu.addItem(ollamaItem)
         menu.addItem(launchdItem)
-        menu.addItem(activeAgentsItem)
         menu.addItem(detailsItem)
         menu.addItem(NSMenuItem.separator())
         menu.addItem(basicsHeaderItem)
@@ -62,7 +62,7 @@ final class SovereignMenubarApp: NSObject, NSApplicationDelegate {
 
     private func configureMenuBarIcon() {
         guard let button = statusItem.button else { return }
-        if let image = NSImage(systemSymbolName: "bubble.left.and.bubble.right.fill", accessibilityDescription: "Sovereign") {
+        if let image = NSImage(systemSymbolName: "bolt.shield.fill", accessibilityDescription: "Sovereign") {
             image.isTemplate = true
             button.image = image
             button.imagePosition = .imageOnly
@@ -94,39 +94,42 @@ final class SovereignMenubarApp: NSObject, NSApplicationDelegate {
     @objc private func refreshHealth() {
         let appUp = portOpen(appPort)
         let ollamaUp = portOpen("11434")
-        let workerOut = MenubarCore.runShellCapture("ps -eo args= | grep 'scripts/worker.js' | grep -v grep | wc -l | tr -d ' '", workingDirectory: repoRoot)
-        let workerCount = Int(workerOut.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
-        let launchdUp = launchdLoaded("com.sovereign.app") || launchdLoaded("com.sentinelsquad.app")
-
-        let activeOut = MenubarCore.runShellCapture("if [ -f apps/sovereign/.sovereign/settings.json ]; then grep -o 'Granite-4.0-H-1B' apps/sovereign/.sovereign/settings.json | wc -l | tr -d ' '; elif [ -f apps/sovereign/.sentinelsquad/settings.json ]; then grep -o 'Granite-4.0-H-1B' apps/sovereign/.sentinelsquad/settings.json | wc -l | tr -d ' '; else echo 0; fi", workingDirectory: repoRoot)
-        let graniteRefs = Int(activeOut.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
+        
+        let bridgeOut = MenubarCore.runShellCapture("/usr/bin/pgrep -f bridge.py | wc -l | tr -d ' '", workingDirectory: repoRoot)
+        let bridgeUp = (Int(bridgeOut.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0) > 0
+        
+        let vanguardOut = MenubarCore.runShellCapture("/usr/bin/pgrep -f discord_vanguard.py | wc -l | tr -d ' '", workingDirectory: repoRoot)
+        let vanguardUp = (Int(vanguardOut.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0) > 0
+        
+        let launchdUp = launchdLoaded("com.sovereign.nexus-bridge") && launchdLoaded("com.sovereign.vanguard")
 
         appItem.title = boolTitle("App", appUp)
-        workerItem.title = "Worker: \(workerCount > 0 ? "\(workerCount) running" : "down")"
+        bridgeItem.title = boolTitle("Nexus Bridge", bridgeUp)
+        vanguardItem.title = boolTitle("Discord Vanguard", vanguardUp)
         ollamaItem.title = boolTitle("Ollama", ollamaUp)
-        launchdItem.title = "Launchd: \(launchdUp ? "loaded" : "manual")"
-        activeAgentsItem.title = "Granite refs: \(graniteRefs)"
-        detailsItem.title = "UI: http://127.0.0.1:\(appPort)/chat"
+        launchdItem.title = "Persistence: \(launchdUp ? "Active 24/7" : "Manual/Off")"
+        detailsItem.title = "UI: http://localhost:\(appPort)/chat"
 
         if let button = statusItem.button {
-            button.contentTintColor = appUp ? nil : .systemRed
+            // nil defaults to black (light mode) or white (dark mode) on a template image
+            button.contentTintColor = (appUp && bridgeUp && vanguardUp) ? nil : .systemRed
         }
     }
 
     @objc private func openChat() {
-        NSWorkspace.shared.open(URL(string: "http://127.0.0.1:\(appPort)/chat")!)
+        NSWorkspace.shared.open(URL(string: "http://localhost:\(appPort)/chat")!)
     }
 
     @objc private func openAgents() {
-        NSWorkspace.shared.open(URL(string: "http://127.0.0.1:\(appPort)/agents")!)
+        NSWorkspace.shared.open(URL(string: "http://localhost:\(appPort)/agents")!)
     }
 
     @objc private func openNexus() {
-        NSWorkspace.shared.open(URL(string: "http://127.0.0.1:\(appPort)/nexus")!)
+        NSWorkspace.shared.open(URL(string: "http://localhost:\(appPort)/nexus")!)
     }
 
     @objc private func openSignin() {
-        NSWorkspace.shared.open(URL(string: "http://127.0.0.1:\(appPort)/signin")!)
+        NSWorkspace.shared.open(URL(string: "http://localhost:\(appPort)/signin")!)
     }
 
     @objc private func openRepository() {
@@ -155,8 +158,13 @@ final class SovereignMenubarApp: NSObject, NSApplicationDelegate {
     }
 }
 
-let app = NSApplication.shared
-let delegate = SovereignMenubarApp()
-app.delegate = delegate
-app.setActivationPolicy(.accessory)
-app.run()
+@main
+struct SovereignApp {
+    static func main() {
+        let app = NSApplication.shared
+        let delegate = SovereignMenubarApp()
+        app.delegate = delegate
+        app.setActivationPolicy(.accessory)
+        app.run()
+    }
+}

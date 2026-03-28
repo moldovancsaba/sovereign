@@ -13,6 +13,19 @@ import {
   upsertTasteRubricVersion
 } from "@/lib/settings-mutations";
 
+function revalidateSettingsRoutes() {
+  const paths = [
+    "/settings",
+    "/settings/workspace",
+    "/settings/preferences",
+    "/settings/safety",
+    "/settings/about"
+  ];
+  for (const p of paths) {
+    revalidatePath(p);
+  }
+}
+
 export async function saveLocalProjectFolderAction(formData: FormData) {
   await requireRbacAccess({
     action: "SETTINGS_SAVE_LOCAL_PROJECT_FOLDER",
@@ -32,7 +45,7 @@ export async function saveLocalProjectFolderAction(formData: FormData) {
     localProjectFolder
   });
 
-  revalidatePath("/settings");
+  revalidateSettingsRoutes();
 }
 
 export async function saveTasteRubricAction(formData: FormData) {
@@ -94,7 +107,7 @@ export async function saveTasteRubricAction(formData: FormData) {
     }
   });
 
-  revalidatePath("/settings");
+  revalidateSettingsRoutes();
 }
 
 export async function saveShellAccessSettingsAction(formData: FormData) {
@@ -123,7 +136,7 @@ export async function saveShellAccessSettingsAction(formData: FormData) {
     }
   });
 
-  revalidatePath("/settings");
+  revalidateSettingsRoutes();
 }
 
 export async function saveCommandAccessPolicyAction(formData: FormData) {
@@ -170,5 +183,5 @@ export async function saveCommandAccessPolicyAction(formData: FormData) {
     )
   });
 
-  revalidatePath("/settings");
+  revalidateSettingsRoutes();
 }

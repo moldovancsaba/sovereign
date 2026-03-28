@@ -4,10 +4,13 @@ import { requireSession } from "@/lib/session";
 import { CopyCommandButton } from "@/components/CopyCommandButton";
 import { RunStatusSection } from "@/components/RunStatusSection";
 import { getLocalSystemStatus } from "@/lib/local-system-status";
-import { listRunningWorkers } from "@/lib/worker-process";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
+
+/** Repo root from any working tree; works when your shell cwd is inside the clone. */
+const CD_REPO = 'cd "$(git rev-parse --show-toplevel)"';
+const CD_APP = 'cd "$(git rev-parse --show-toplevel)/apps/sovereign"';
 
 const FLOWS: Array<{
   title: string;
@@ -19,34 +22,28 @@ const FLOWS: Array<{
   {
     title: "Start the database",
     description: "Start local Postgres (e.g. Docker or db:up).",
-    commands: ["cd /Users/moldovancsaba/Projects/sovereign", "npm run db:up"],
+    commands: [CD_REPO, "npm run db:up"],
     cwd: "repo root",
     notes: "Skip if Postgres is already running."
   },
   {
     title: "Start the app",
     description: "Run the Next.js app on port 3007.",
-    commands: ["cd /Users/moldovancsaba/Projects/sovereign", "npm run dev"],
+    commands: [CD_REPO, "npm run dev"],
     cwd: "repo root",
     notes: "You are viewing this in the app when it is running."
   },
   {
-    title: "Start the worker",
-    description: "Run the control-plane worker (picks up tasks for @Controller). Run in a separate terminal.",
-    commands: [
-      "cd /Users/moldovancsaba/Projects/sovereign/apps/sovereign",
-      "npm run worker"
-    ],
-    cwd: "apps/sovereign",
-    notes: "Requires SOVEREIGN_WORKER_AGENT_KEY (or --agent=...) for an ALPHA agent. See Agents page to start worker for a specific agent."
+    title: "Start the Nexus Bridge",
+    description: "Launch the Python DAG engine and lease autority. Managed by launchd in production.",
+    commands: [CD_REPO, "npm run nexus:bridge"],
+    cwd: "repo root",
+    notes: "Requires venv. Controlled by ~/Library/LaunchAgents/com.sovereign.nexus-bridge.plist."
   },
   {
     title: "Run the MCP backlog server",
     description: "Start the MCP server for backlog tools (stdio). MCP clients can call backlog_list_boards, backlog_list_items, backlog_create_item, etc.",
-    commands: [
-      "cd /Users/moldovancsaba/Projects/sovereign/apps/sovereign",
-      "npm run mcp:backlog"
-    ],
+    commands: [CD_APP, "npm run mcp:backlog"],
     cwd: "apps/sovereign",
     notes: "Runs until stdin closes. Send JSON-RPC lines (e.g. {\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}) to list tools."
   },
@@ -54,10 +51,7 @@ const FLOWS: Array<{
     title: "Run the MCP memory server",
     description:
       "MCP memory server: memory_search (lexical + optional semantic), memory_list_recent, memory_get; resources/list and resources/read (operator guide + sovereign-memory://memory/{id}).",
-    commands: [
-      "cd /Users/moldovancsaba/Projects/sovereign/apps/sovereign",
-      "npm run mcp:memory"
-    ],
+    commands: [CD_APP, "npm run mcp:memory"],
     cwd: "apps/sovereign",
     notes: "Requires DATABASE_URL and, for semantic search, Ollama + nomic-embed-text. Pass projectSessionId in tool args (from your active project session)."
   },
@@ -65,10 +59,7 @@ const FLOWS: Array<{
     title: "Run the MCP docs server (runbooks)",
     description:
       "LLD-007: repo docs (doc://runbooks/…, doc://project/…) plus optional BookStack or Outline wiki (see docs/setup/WIKI_SELF_HOSTED.md).",
-    commands: [
-      "cd /Users/moldovancsaba/Projects/sovereign/apps/sovereign",
-      "npm run mcp:docs"
-    ],
+    commands: [CD_APP, "npm run mcp:docs"],
     cwd: "apps/sovereign",
     notes:
       "Send JSON-RPC on stdin: resources/list, resources/read. Repo: SOVEREIGN_DOCS_REPO_ROOT. Wiki: SOVEREIGN_WIKI_TYPE=bookstack|outline + creds in .env.example; URIs doc://wiki/bookstack/page/{id} or doc://wiki/outline/doc/{uuid}."
@@ -76,30 +67,20 @@ const FLOWS: Array<{
   {
     title: "Run database migrations",
     description: "Apply pending Prisma migrations.",
-    commands: [
-      "cd /Users/moldovancsaba/Projects/sovereign/apps/sovereign",
-      "npx prisma migrate dev"
-    ],
+    commands: [CD_APP, "npx prisma migrate dev"],
     cwd: "apps/sovereign"
   },
   {
     title: "Verify build",
     description: "Typecheck and build the app.",
-    commands: [
-      "cd /Users/moldovancsaba/Projects/sovereign",
-      "npm run typecheck",
-      "npm run build"
-    ],
+    commands: [CD_REPO, "npm run typecheck", "npm run build"],
     cwd: "repo root"
   },
   {
     title: "Verify semantic memory stack",
     description:
       "Confirms Postgres has pgvector and Ollama returns 768-d embeddings (default nomic-embed-text).",
-    commands: [
-      "cd /Users/moldovancsaba/Projects/sovereign",
-      "npm run memory:verify"
-    ],
+    commands: [CD_REPO, "npm run memory:verify"],
     cwd: "repo root",
     notes: "Requires database up and `ollama pull nomic-embed-text`. Optional: `SOVEREIGN_MEMORY_EMBED_ON_CAPTURE=1` when running the worker to store embeddings on capture."
   }
@@ -122,7 +103,6 @@ export default async function RunPage() {
   if (!session) redirect("/signin");
 
   const services = getLocalSystemStatus();
-  const workers = listRunningWorkers();
   let databaseQueryOk: boolean | null = null;
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -138,21 +118,29 @@ export default async function RunPage() {
     >
       <RunStatusSection
         services={services}
-        workers={workers}
         databaseQueryOk={databaseQueryOk}
       />
 
-      <div className="mb-6 rounded-2xl border border-cyan-300/20 bg-cyan-300/5 p-4 text-sm text-cyan-100/90">
-        Full details: <code className="rounded bg-black/20 px-1">docs/BUILD_AND_RUN.md</code> and{" "}
-        <code className="rounded bg-black/20 px-1">docs/SETUP.md</code> in the repo.
+      <div className="mb-6 space-y-2 rounded-xl border border-cyan-300/20 bg-cyan-300/5 p-3 text-sm text-cyan-100/90">
+        <p>
+          Commands assume your terminal is inside the git clone. To jump to the repo root from anywhere:{" "}
+          <code className="rounded bg-black/20 px-1">cd &quot;$(git rev-parse --show-toplevel)&quot;</code>
+        </p>
+        <p>
+          Full details: <code className="rounded bg-black/20 px-1">docs/BUILD_AND_RUN.md</code> and{" "}
+          <code className="rounded bg-black/20 px-1">docs/SETUP.md</code> in the repo.
+        </p>
       </div>
 
-      <div className="space-y-8">
+      <section className="space-y-8" aria-labelledby="run-flows-heading">
+        <h2
+          id="run-flows-heading"
+          className="text-[11px] font-semibold uppercase tracking-wide text-white/45"
+        >
+          Copy-paste flows
+        </h2>
         {FLOWS.map((flow, i) => (
-          <section
-            key={flow.title}
-            className="rounded-2xl border border-white/12 bg-white/5 p-5"
-          >
+          <div key={flow.title} className="ds-card p-5" role="group" aria-label={flow.title}>
             <div className="mb-2 text-base font-semibold text-white/95">
               {flow.title}
             </div>
@@ -166,9 +154,9 @@ export default async function RunPage() {
             {flow.notes ? (
               <div className="mt-2 text-xs text-white/55">{flow.notes}</div>
             ) : null}
-          </section>
+          </div>
         ))}
-      </div>
+      </section>
     </Shell>
   );
 }

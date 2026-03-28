@@ -19,7 +19,6 @@ import {
   removeAgentSetting,
   upsertAgentSetting
 } from "@/lib/settings-mutations";
-import { startWorker, stopWorker } from "@/lib/worker-process";
 
 async function requireOperatorAccess(action: string, entityId?: string, metadata?: Prisma.JsonObject) {
   return requireRbacAccess({
@@ -126,21 +125,7 @@ export async function createAgentAction(formData: FormData) {
   revalidatePath("/chat");
 }
 
-export async function startAgentWorkerAction(formData: FormData) {
-  const agentKey = String(formData.get("agentKey") || "").trim();
-  if (!agentKey) throw new Error("Missing agent key.");
-  await requireOperatorAccess("AGENTS_START_WORKER", agentKey);
-  await startWorker(agentKey);
-  revalidatePath("/agents");
-}
-
-export async function stopAgentWorkerAction(formData: FormData) {
-  const agentKey = String(formData.get("agentKey") || "").trim();
-  if (!agentKey) throw new Error("Missing agent key.");
-  await requireOperatorAccess("AGENTS_STOP_WORKER", agentKey);
-  await stopWorker(agentKey);
-  revalidatePath("/agents");
-}
+// Worker lifecycle actions decommissioned for architectural purity
 
 export async function saveAgentConfigAction(formData: FormData) {
   const agentId = String(formData.get("agentId") || "").trim();

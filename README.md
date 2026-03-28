@@ -1,240 +1,84 @@
 # {sovereign}
 
-`{sovereign}` is a local-first desktop product for multi-agent software delivery.
+`{sovereign}` is a **Governed Routing Brain** for deterministic, high-availability software delivery, evolved under the **Gemini Initiative**.
 
-The product goal is not “one coding assistant in an editor.” The goal is a company operating system where multiple AI agents collaborate in one transcript, execute bounded work inside real project workspaces, and build durable project memory over time.
+This is the absolute **Single Source of Truth (SSOT)** for the Sovereign platform v1.2.0-brain. It is a local-first, deterministic operating system where AI agents execute bounded work through a strictly governed Python Directed Acyclic Graph (DAG) and build durable project memory.
 
-## Delivery Status
+## {sovereign} v1.2.0-brain (Gemini Initiative)
 
-Current release stage: `1.1.0`
+The current architecture represents a finalized transition into a unified, deterministic engine. Legacy JS workers and the experimental "Trinity" API have been surgically purged to eliminate architectural ambiguity.
 
-What is implemented now:
+### Key Pillars
 
-- local macOS app wrapper that launches the product
-- local web app and managed worker flow
-- unified multi-agent chat with active-agent visibility
-- execution-time role enforcement for `@Controller`, `@Drafter`, and `@Writer`
-- project-session-aware tool execution
-- thread and task event timeline
-- local runtime health and service status views
-- first durable project-memory capture foundation
-- API v1 LLM-compatible surface (`/api/v1/chat/completions`, `/models`, `/health`)
-- Trinity execution path with Drafter/Writer/Judge stages, confidence semantics, and bounded retries
-- persisted Trinity runs with query endpoints (`/api/v1/trinity/runs`, `/api/v1/trinity/runs/:id`)
-- workforce foundations: agent-group registry, nested group membership, cycle guard
-- deterministic auto staffing with role scoring + persisted role rankings
-- deterministic API v1 workforce e2e gate (`npm run e2e:api-v1-trinity`)
+- **The External Vanguard (Discord)**: Asynchronous intent ingestion from external channels.
+- **The Nexus Bridge**: A persistent Python watcher (managed by macOS `launchd`) that routes tasks from the database into the execution engine.
+- **The Governed DAG Engine**: A 5-node deterministic pipeline:
+  1. **Intent Router**: Identifies and classifies incoming intents.
+  2. **Context Builder**: Constructs hyper-local context using `pgvector`.
+  3. **Generator**: Produces raw artifacts using MLX/Ollama or high-performance global LLMs.
+  4. **Evaluator**: Enforces a "Catastrophic Floor" and performs weighted scoring.
+  5. **Dispatcher**: Handles the final egress to Discord or the local filesystem.
 
-What is only partially implemented:
+## Persistence: The Immortality Protocol
 
-- Theia desktop integration
-- memory retrieval, annotation, and review workflows
-- provider abstraction beyond Ollama/OpenAI-compatible/mock execution
-- final-judgement and operator review semantics
-- advanced ranking calibration and adaptive scoring beyond current deterministic baseline
+`{sovereign}` is designed for 24/7 availability on macOS via native `launchd` agents:
 
-What is target architecture, not shipped baseline:
+- **Nexus Bridge Sentinel**: `com.sovereign.nexus-bridge`
+- **Discord Vanguard Sentinel**: `com.sovereign.vanguard`
+- **Menubar Guardian**: `com.sovereign.menubar` (High-visibility status icon)
 
-- Theia as the primary end-user shell
-- `pgvector`-backed retrieval
-- MLX as a first-class production runtime
-- OpenClaw adapter support
+These services are self-healing: they stay alive across system reboots and automatically restart if frozen or crashed.
 
-## Recommended Stack
+## Deployment Status
 
-The target delivery stack for `{sovereign}` is:
+**LIVE Features:**
+- **Control Room Console**: Radical, high-density dashboard for real-time task monitoring.
+- **Human-in-the-Loop**: Strict governance boundaries (R3/R4) require explicit approval via the Control Room or `/api/sovereign/approve`.
+- **Surgical Purity**: The codebase has been purged of all legacy "Trinity" and "Hybrid Orchestrator" fragments.
 
-- Eclipse Theia Desktop for the IDE shell
-- Electron for desktop packaging
-- TypeScript and Node.js for product logic
-- PostgreSQL as the primary source of truth
-- Prisma for schema and migrations
-- `pgvector` for long-term memory retrieval
-- Ollama as the default local model runtime
-- MLX as the optional Apple Silicon runtime
-- launchd for macOS background services
-- custom `{sovereign}` orchestration, memory, policy, and tool-execution layers
+## Quick Start (Operator Console)
 
-GitHub is for source hosting and collaboration. It is not a required runtime dependency for the local product.
+1. **Start the Infrastructure**:
+   ```bash
+   npm run db:up
+   ```
 
-## Repository
+2. **Launch the Control Room**:
+   ```bash
+   npm run dev
+   ```
 
-- GitHub: [moldovancsaba/sovereign](https://github.com/moldovancsaba/sovereign)
-- Local root: `/Users/moldovancsaba/Projects/sovereign`
-- App: [`/Users/moldovancsaba/Projects/sovereign/apps/sovereign`](/Users/moldovancsaba/Projects/sovereign/apps/sovereign)
-- Product version: `1.1.0`
+3. **Verify Persistent Sentinels**:
+   Check the macOS Menubar for the Sovereign Guardian (`bolt.shield.fill`). If missing, start manually:
+   ```bash
+   # Nexus Bridge
+   npm run nexus:bridge
+   # Discord Vanguard
+   npm run vanguard:run
+   ```
 
-## Repository Shape
+## Repository Structure
 
 ```text
 .
 ├── apps/
-│   └── sovereign/   # app, worker, Prisma schema, launcher scripts
-├── docs/                # architecture, operator docs, contributor docs, product docs
-├── tools/theia-desktop/ # in-repo Theia desktop shell bootstrap
-├── tools/macos/         # macOS app and helper installers
-├── scripts/             # repo-level utility scripts
-├── docker-compose.yml   # local Postgres
-└── README.md
+│   └── sovereign/
+│       ├── src/               # Control Room & Ingestion API (Next.js)
+│       ├── prisma/            # Sovereign Schema (v1.2.0-brain)
+│       └── scripts/
+│           ├── sovereign_dag/ # Core Python DAG Engine
+│           └── discord_vanguard.py # External I/O Sentinel
+├── docs/                      # Joint Initiative Documentation
+│   └── archive_legacy/        # Decommissioned Trinity/Orchestrate fragments
+└── docker-compose.yml         # Optimized Postgres + pgvector
 ```
 
-## Product Principles
+## Principles
 
-- local-first runtime
-- desktop-first experience
-- one unified multi-agent transcript
-- explicit agent roles and handoffs
-- project-session-aware execution
-- durable long-term memory per project
-- fail-closed execution and auditability
-- open-source foundations instead of closed platform lock-in
+- **Local-First, Governed-Always**: Compute is local; governance is absolute.
+- **Deterministic over Stochastic**: LLMs are bounded by mathematical DAG nodes.
+- **Persistent Sentinels**: 24/7 availability via the Immortality Protocol.
+- **Durable Memory**: Exponential time-decayed retrieval via `pgvector`.
 
-## Quick Start
-
-### Developer path
-
-1. Start Postgres (image includes **pgvector** for semantic project memory):
-
-```bash
-cd /Users/moldovancsaba/Projects/sovereign
-npm run db:up
-```
-
-If you previously used plain `postgres:16` without pgvector, recreate the DB volume once after pulling the updated compose file, then run migrations again.
-
-2. Prepare the app:
-
-```bash
-cd /Users/moldovancsaba/Projects/sovereign/apps/sovereign
-cp .env.example .env
-```
-
-3. Install dependencies and generate Prisma client:
-
-```bash
-cd /Users/moldovancsaba/Projects/sovereign
-npm run install:app
-npm run prisma:generate
-```
-
-4. Run migrations:
-
-```bash
-cd /Users/moldovancsaba/Projects/sovereign/apps/sovereign
-npx prisma migrate dev
-```
-
-For **non-dev** databases (Docker bootstrap, CI, staging), use `npm run prisma:migrate:deploy` from the repo root (see [docs/SETUP.md](docs/SETUP.md)).
-
-5. Start local development:
-
-```bash
-cd /Users/moldovancsaba/Projects/sovereign
-npm run dev
-```
-
-6. Start the worker in a second terminal:
-
-```bash
-cd /Users/moldovancsaba/Projects/sovereign
-npm run worker
-```
-
-7. Open:
-
-- app: [http://127.0.0.1:3007](http://127.0.0.1:3007)
-- dashboard: [http://127.0.0.1:3007/dashboard](http://127.0.0.1:3007/dashboard)
-- chat: [http://127.0.0.1:3007/chat](http://127.0.0.1:3007/chat)
-
-### macOS desktop path
-
-Install the app bundle from the repo root:
-
-```bash
-cd /Users/moldovancsaba/Projects/sovereign
-npm run desktop:install-app
-```
-
-This compiles a small native shell, installs **Sovereign.app** to `/Applications` when that folder is writable, otherwise to **`~/Applications`**, and tries to open it. First launch runs `bootstrap-local-dev.sh` (Docker Postgres if needed, Prisma, seeds), then starts `next dev` and the worker and loads chat in a **WebKit** window.
-
-To force the install location (example: system folder when your user cannot write `/Applications`):
-
-`SOVEREIGN_INSTALL_PARENT="$HOME/Applications" npm run desktop:install-app`
-
-or
-
-`sudo SOVEREIGN_INSTALL_PARENT=/Applications bash tools/macos/SovereignDesktop/install_SovereignDesktop.sh`
-
-Optional slow step: `DESKTOP_BUILD_THEIA_ELECTRON=1 npm run desktop:install-app` also builds the Theia Electron shell (not required for the WebKit launcher).
-
-### One-command macOS install
-
-For a fresh Mac (after cloning the repo), run from repo root:
-
-```bash
-cd /Users/moldovancsaba/Projects/sovereign
-npm run install:macos
-```
-
-What it does:
-
-- checks required tools (`node`, `npm`, `docker`, `swiftc`)
-- installs app dependencies
-- starts local Postgres container
-- bootstraps `.env`, Prisma client/migrations, seed data, and runtime doctor
-- installs `Sovereign.app`
-- starts app + worker in background (`/tmp/sovereign-dev.log`, `/tmp/sovereign-worker.log`)
-
-Optional flags:
-
-- `SKIP_DESKTOP_INSTALL=1 npm run install:macos`
-- `SKIP_START=1 npm run install:macos`
-
-## Launch Modes
-
-- Local web/dev app: `http://127.0.0.1:3007`
-- Local Postgres: `127.0.0.1:34765`
-- Containerized app port remains separate from the main local-first flow
-- Theia shell bootstrap is available through repo scripts, but it is still an architecture track, not the default end-user shell
-
-## Runtime Model
-
-Current runtime path:
-
-- Ollama: implemented primary local provider
-- local model auto-resolution: implemented
-- runtime doctor and health views: implemented
-
-Target runtime path:
-
-- MLX: optional provider for Apple Silicon
-- OpenClaw: optional adapter, never the product core
-
-The product should resolve an installed local model automatically where possible instead of failing because one preferred alias is missing. That fallback behavior is implemented for the current Ollama path.
-
-## Documentation Map
-
-- architecture baseline: [`/Users/moldovancsaba/Projects/sovereign/docs/architecture/0001-theia-desktop-foundation.md`](/Users/moldovancsaba/Projects/sovereign/docs/architecture/0001-theia-desktop-foundation.md)
-- hardening blueprint: [`/Users/moldovancsaba/Projects/sovereign/docs/architecture/0002-rock-solid-open-source-hardening.md`](/Users/moldovancsaba/Projects/sovereign/docs/architecture/0002-rock-solid-open-source-hardening.md)
-- delivery roadmap: [`/Users/moldovancsaba/Projects/sovereign/docs/SOVEREIGN_DELIVERY_ROADMAP.md`](/Users/moldovancsaba/Projects/sovereign/docs/SOVEREIGN_DELIVERY_ROADMAP.md)
-- handover: [`/Users/moldovancsaba/Projects/sovereign/HANDOVER.md`](/Users/moldovancsaba/Projects/sovereign/HANDOVER.md)
-- setup: [`/Users/moldovancsaba/Projects/sovereign/docs/SETUP.md`](/Users/moldovancsaba/Projects/sovereign/docs/SETUP.md)
-- build and run: [`/Users/moldovancsaba/Projects/sovereign/docs/BUILD_AND_RUN.md`](/Users/moldovancsaba/Projects/sovereign/docs/BUILD_AND_RUN.md)
-- API v1: [`/Users/moldovancsaba/Projects/sovereign/docs/API_V1.md`](/Users/moldovancsaba/Projects/sovereign/docs/API_V1.md)
-- contributing: [`/Users/moldovancsaba/Projects/sovereign/CONTRIBUTING.md`](/Users/moldovancsaba/Projects/sovereign/CONTRIBUTING.md)
-
-## Verification
-
-From the repo root:
-
-```bash
-npm run verify
-```
-
-## Current Truth
-
-The current codebase is in active hardening and is suitable for first-client delivery preparation, but it has not yet reached the full target architecture. Read the docs with these rules:
-
-- `README.md`, `BUILD_AND_RUN.md`, `SETUP.md`, and `HANDOVER.md` describe the implemented baseline
-- the ADRs and roadmap describe both implemented work and target architecture
-- anything marked as Theia-primary, MLX-first-class, OpenClaw-integrated, or `pgvector` retrieval should be treated as target state unless explicitly called out as implemented
+---
+*Developed under the {sovereign} + Gemini Strategic Initiative.*

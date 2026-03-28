@@ -7,6 +7,534 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                                   String                         @id @default(cuid())
+  name                                 String?
+  email                                String?                        @unique
+  emailVerified                        DateTime?
+  image                                String?
+  createdAt                            DateTime                       @default(now())
+  updatedAt                            DateTime                       @updatedAt
+  accounts                             Account[]
+  tasksCreated                         AgentTask[]
+  alphaContextPackageInvariantsCreated AlphaContextPackageInvariant[] @relation("AlphaContextPackageInvariantCreatedBy")
+  alphaContextWindowsCreated           AlphaContextWindow[]           @relation("AlphaContextWindowCreatedBy")
+  backlogItemsCreated                  BacklogItem[]
+  messages                             ChatMessage[]
+  threadsCreated                       ChatThread[]                   @relation("ThreadCreatedBy")
+  poFeedbackCreated                    POFeedback[]
+  projectMemoriesAuthored              ProjectMemory[]                @relation("ProjectMemoryCreatedBy")
+  projectSessionsCreated               ProjectSession[]
+  sessions                             Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Agent {
+  id                  String               @id @default(cuid())
+  key                 String               @unique
+  displayName         String
+  avatarUrl           String?
+  runtime             AgentRuntime         @default(MANUAL)
+  model               String?
+  host                String?
+  enabled             Boolean              @default(true)
+  capabilities        Json?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  lastHeartbeatAt     DateTime?
+  lastHeartbeatMeta   Json?
+  readiness           AgentReadiness       @default(NOT_READY)
+  smokeTestPassedAt   DateTime?
+  controlRole         AgentControlRole     @default(BETA)
+  tasks               AgentTask[]
+  alphaContextWindows AlphaContextWindow[]
+  activeProjectLocks  ProjectAlphaLock[]   @relation("ProjectAlphaLockOwner")
+}
+
+model ChatThread {
+  id           String          @id @default(cuid())
+  kind         ThreadKind
+  ref          String
+  title        String?
+  createdById  String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  tasks        AgentTask[]
+  backlogItems BacklogItem[]
+  events       ChatEvent[]
+  messages     ChatMessage[]
+  createdBy    User?           @relation("ThreadCreatedBy", fields: [createdById], references: [id])
+  memories     ProjectMemory[]
+
+  @@unique([kind, ref])
+}
+
+model ChatEvent {
+  id        String          @id @default(cuid())
+  threadId  String
+  kind      ThreadEventKind
+  actorKey  String?
+  taskId    String?
+  payload   Json?
+  createdAt DateTime        @default(now())
+  thread    ChatThread      @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+  @@index([kind, createdAt])
+  @@index([taskId])
+}
+
+model ProjectSession {
+  id           String               @id @default(cuid())
+  rootPath     String
+  relPath      String
+  displayName  String
+  status       ProjectSessionStatus @default(ACTIVE)
+  metadata     Json?
+  lastOpenedAt DateTime             @default(now())
+  createdById  String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  memories     ProjectMemory[]
+  createdBy    User?                @relation(fields: [createdById], references: [id])
+
+  @@unique([rootPath, relPath])
+  @@index([status, lastOpenedAt])
+  @@index([displayName])
+}
+
+model ProjectMemory {
+  id                  String                 @id @default(cuid())
+  projectSessionId    String
+  threadId            String?
+  taskId              String?
+  sourceMessageId     String?
+  title               String
+  summary             String
+  content             String
+  tags                Json?
+  status              ProjectMemoryStatus    @default(CAPTURED)
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  kind                ProjectMemoryKind      @default(THREAD)
+  sourceKind          String?
+  sourceUrl           String?
+  sourceAgentKey      String?
+  createdByUserId     String?
+  embeddingModel      String?
+  embeddingDimensions Int?
+  /// pgvector column; read/write similarity via raw SQL (see src/lib/memory.ts)
+  embedding           Unsupported("vector")?
+  createdByUser       User?                  @relation("ProjectMemoryCreatedBy", fields: [createdByUserId], references: [id])
+  projectSession      ProjectSession         @relation(fields: [projectSessionId], references: [id], onDelete: Cascade)
+  task                AgentTask?             @relation(fields: [taskId], references: [id])
+  thread              ChatThread?            @relation(fields: [threadId], references: [id])
+
+  @@index([projectSessionId, createdAt])
+  @@index([projectSessionId, status, updatedAt])
+  @@index([projectSessionId, kind])
+  @@index([threadId])
+  @@index([taskId])
+}
+
+model BacklogBoard {
+  id           String        @id @default(cuid())
+  name         String
+  productScope String?       @unique
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  goals        BacklogGoal[]
+  items        BacklogItem[]
+
+  @@index([productScope])
+}
+
+model BacklogGoal {
+  id          String        @id @default(cuid())
+  boardId     String
+  title       String
+  description String?
+  sortOrder   Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  board       BacklogBoard  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  items       BacklogItem[]
+
+  @@index([boardId])
+}
+
+model BacklogItem {
+  id                 String            @id @default(cuid())
+  boardId            String
+  goalId             String?
+  title              String
+  description        String?
+  acceptanceCriteria Json?
+  status             BacklogItemStatus @default(BACKLOG)
+  priority           Int               @default(0)
+  sortOrder          Int               @default(0)
+  createdById        String?
+  threadId           String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  board              BacklogBoard      @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  createdBy          User?             @relation(fields: [createdById], references: [id])
+  goal               BacklogGoal?      @relation(fields: [goalId], references: [id])
+  thread             ChatThread?       @relation(fields: [threadId], references: [id])
+  feedback           POFeedback[]
+
+  @@index([boardId, status])
+  @@index([goalId])
+  @@index([threadId])
+  @@index([status, sortOrder])
+}
+
+model POFeedback {
+  id            String         @id @default(cuid())
+  backlogItemId String
+  threadId      String?
+  kind          POFeedbackKind
+  reason        String?
+  createdById   String?
+  createdAt     DateTime       @default(now())
+  backlogItem   BacklogItem    @relation(fields: [backlogItemId], references: [id], onDelete: Cascade)
+  createdBy     User?          @relation(fields: [createdById], references: [id])
+
+  @@index([backlogItemId])
+  @@index([threadId])
+}
+
+model ChatMessage {
+  id         String            @id @default(cuid())
+  threadId   String
+  authorType MessageAuthorType
+  authorKey  String?
+  userId     String?
+  content    String
+  meta       Json?
+  createdAt  DateTime          @default(now())
+  thread     ChatThread        @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user       User?             @relation(fields: [userId], references: [id])
+
+  @@index([threadId, createdAt])
+}
+
+model AgentTask {
+  id                     String                      @id @default(cuid())
+  status                 TaskStatus                  @default(QUEUED)
+  agentKey               String
+  issueNumber            Int?
+  threadId               String?
+  title                  String
+  payload                Json?
+  createdById            String?
+  startedAt              DateTime?
+  finishedAt             DateTime?
+  error                  String?
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+  attemptCount           Int                         @default(0)
+  maxAttempts            Int                         @default(3)
+  nextAttemptAt          DateTime                    @default(now())
+  lastFailureCode        String?
+  lastFailureKind        String?
+  deadLetteredAt         DateTime?
+  escalatedAt            DateTime?
+  judgementConfidence    Float?
+  judgementReason        String?
+  judgementVote          String?
+  agent                  Agent                       @relation(fields: [agentKey], references: [key], onDelete: Cascade)
+  createdBy              User?                       @relation(fields: [createdById], references: [id])
+  thread                 ChatThread?                 @relation(fields: [threadId], references: [id])
+  memories               ProjectMemory[]
+  promptPackageInvariant TaskPromptPackageInvariant?
+
+  @@index([agentKey, status, createdAt])
+  @@index([status, nextAttemptAt, createdAt])
+  @@index([issueNumber])
+}
+
+model TaskPromptPackageInvariant {
+  id              String    @id @default(cuid())
+  taskId          String    @unique
+  sourceKind      String
+  sourceRef       String?
+  issueNumber     Int?
+  snapshotHash    String
+  promptText      String
+  packageBody     String?
+  packageSections Json?
+  payloadSnapshot Json?
+  createdAt       DateTime  @default(now())
+  task            AgentTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([issueNumber, createdAt])
+  @@index([sourceKind, createdAt])
+  @@index([createdAt])
+}
+
+model OrchestratorLease {
+  id              String                   @id
+  ownerId         String?
+  ownerHost       String?
+  ownerPid        Int?
+  ownerAgentKey   String?
+  expiresAt       DateTime?
+  lastHeartbeatAt DateTime?
+  heartbeatCount  Int                      @default(0)
+  acquiredAt      DateTime?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  audits          OrchestratorLeaseAudit[]
+
+  @@index([ownerId])
+  @@index([expiresAt])
+}
+
+model OrchestratorLeaseAudit {
+  id              String            @id @default(cuid())
+  leaseId         String
+  code            String
+  message         String
+  ownerId         String?
+  previousOwnerId String?
+  metadata        Json?
+  createdAt       DateTime          @default(now())
+  lease           OrchestratorLease @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+
+  @@index([leaseId, createdAt])
+  @@index([code, createdAt])
+}
+
+model LifecycleAuditEvent {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String?
+  actorRole  String
+  action     String
+  fromState  String?
+  toState    String?
+  allowed    Boolean
+  reason     String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorRole, action, createdAt])
+  @@index([createdAt])
+}
+
+model InboundEmailEvent {
+  id                  String    @id @default(cuid())
+  externalMessageId   String?   @unique
+  channel             String    @default("email")
+  senderEmail         String
+  senderName          String?
+  subject             String
+  bodyText            String
+  authorized          Boolean   @default(false)
+  authorizationReason String
+  status              String
+  attemptCount        Int       @default(0)
+  maxAttempts         Int       @default(3)
+  nextAttemptAt       DateTime?
+  lastFailureCode     String?
+  lastFailureMessage  String?
+  threadId            String?
+  taskId              String?
+  meta                Json?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([senderEmail, createdAt])
+  @@index([channel, createdAt])
+}
+
+model AlphaContextWindow {
+  id                      String                         @id @default(cuid())
+  projectKey              String
+  projectName             String
+  ownerAgentKey           String
+  status                  AlphaContextStatus             @default(OPEN)
+  activationHandoverRef   String?
+  transferHandoverRef     String?
+  closeHandoverRef        String?
+  continuityNote          String?
+  predecessorId           String?
+  activatedAt             DateTime?
+  transferredAt           DateTime?
+  closedAt                DateTime?
+  createdById             String?
+  createdAt               DateTime                       @default(now())
+  updatedAt               DateTime                       @updatedAt
+  contextUsagePercent     Int                            @default(0)
+  contextUsageUpdatedAt   DateTime?
+  contextWarningAt        DateTime?
+  contextBlockedAt        DateTime?
+  handoverPackageRef      String?
+  continuationPromptRef   String?
+  handoverPackageReadyAt  DateTime?
+  guardrailOverrideUntil  DateTime?
+  guardrailOverrideReason String?
+  auditEvents             AlphaContextAuditEvent[]
+  packageInvariants       AlphaContextPackageInvariant[]
+  createdBy               User?                          @relation("AlphaContextWindowCreatedBy", fields: [createdById], references: [id])
+  ownerAgent              Agent                          @relation(fields: [ownerAgentKey], references: [key], onDelete: Cascade)
+  predecessor             AlphaContextWindow?            @relation("AlphaContextWindowPredecessor", fields: [predecessorId], references: [id])
+  successors              AlphaContextWindow[]           @relation("AlphaContextWindowPredecessor")
+  lock                    ProjectAlphaLock?
+
+  @@index([projectKey, status, createdAt])
+  @@index([ownerAgentKey, status, createdAt])
+  @@index([projectName, createdAt])
+}
+
+model AlphaContextPackageInvariant {
+  id                    String                          @id @default(cuid())
+  windowId              String
+  projectKey            String
+  projectName           String
+  snapshotKind          AlphaContextPackageSnapshotKind
+  predecessorSnapshotId String?
+  sourceRef             String?
+  snapshotHash          String
+  handoverRef           String?
+  handoverPackageRef    String?
+  continuationPromptRef String?
+  continuityNote        String?
+  payloadSnapshot       Json?
+  createdById           String?
+  createdAt             DateTime                        @default(now())
+  createdBy             User?                           @relation("AlphaContextPackageInvariantCreatedBy", fields: [createdById], references: [id])
+  predecessor           AlphaContextPackageInvariant?   @relation("AlphaContextPackageInvariantLineage", fields: [predecessorSnapshotId], references: [id])
+  successors            AlphaContextPackageInvariant[]  @relation("AlphaContextPackageInvariantLineage")
+  window                AlphaContextWindow              @relation(fields: [windowId], references: [id], onDelete: Cascade)
+
+  @@index([projectKey, createdAt])
+  @@index([windowId, createdAt])
+  @@index([snapshotKind, createdAt])
+  @@index([predecessorSnapshotId])
+}
+
+model ProjectAlphaLock {
+  projectKey          String              @id
+  projectName         String
+  activeWindowId      String?             @unique
+  activeOwnerAgentKey String?
+  activatedAt         DateTime?
+  continuityRef       String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  activeOwnerAgent    Agent?              @relation("ProjectAlphaLockOwner", fields: [activeOwnerAgentKey], references: [key])
+  activeWindow        AlphaContextWindow? @relation(fields: [activeWindowId], references: [id])
+
+  @@index([activeOwnerAgentKey])
+  @@index([projectName])
+}
+
+model AlphaContextAuditEvent {
+  id                  String              @id @default(cuid())
+  projectKey          String
+  projectName         String
+  actorRole           String
+  action              String
+  allowed             Boolean
+  reason              String
+  windowId            String?
+  conflictingWindowId String?
+  metadata            Json?
+  createdAt           DateTime            @default(now())
+  window              AlphaContextWindow? @relation(fields: [windowId], references: [id])
+
+  @@index([projectKey, createdAt])
+  @@index([action, createdAt])
+  @@index([windowId, createdAt])
+}
+
+model AlphaFailureEvent {
+  id              String   @id @default(cuid())
+  failureClass    String
+  severity        String
+  fallbackAction  String
+  projectKey      String?
+  projectName     String?
+  issueNumber     Int?
+  taskId          String?
+  threadId        String?
+  leaseHealth     String?
+  contextWindowId String?
+  remediation     String
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  @@index([failureClass, createdAt])
+  @@index([projectKey, createdAt])
+  @@index([issueNumber, createdAt])
+  @@index([severity, createdAt])
+}
+
+// Trinity models decommissioned for architectural purity
+
+model AgentGroup {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  displayName String
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AgentGroupMember {
+  id             String   @id @default(cuid())
+  groupId        String
+  memberType     String
+  memberAgentKey String?
+  memberGroupId  String?
+  createdAt      DateTime @default(now())
+
+  @@index([groupId, createdAt])
+  @@index([memberType, createdAt])
+  @@index([memberAgentKey])
+  @@index([memberGroupId])
+}
+
+// Trinity role rankings decommissioned for architectural purity
+
 enum AgentRuntime {
   LOCAL
   CLOUD
@@ -57,7 +585,6 @@ enum ProjectMemoryStatus {
   ARCHIVED
 }
 
-// LLD-006: typed memory + provenance for PO/product and retrieval (see docs/architecture/0004-memory-pgvector-embedding.md)
 enum ProjectMemoryKind {
   THREAD
   PROJECT
@@ -93,7 +620,6 @@ enum TaskStatus {
   DEAD_LETTER
 }
 
-// Local product-owner backlog (fully offline; no GitHub dependency)
 enum BacklogItemStatus {
   BACKLOG
   READY
@@ -107,594 +633,4 @@ enum POFeedbackKind {
   ACCEPTED
   REJECTED
   CHANGE_REQUEST
-}
-
-// next-auth (Prisma adapter) models
-model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-
-  accounts Account[]
-  sessions Session[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  messages ChatMessage[]
-  threadsCreated ChatThread[] @relation("ThreadCreatedBy")
-
-  tasksCreated AgentTask[]
-  projectSessionsCreated ProjectSession[]
-  alphaContextWindowsCreated AlphaContextWindow[] @relation("AlphaContextWindowCreatedBy")
-  alphaContextPackageInvariantsCreated AlphaContextPackageInvariant[] @relation("AlphaContextPackageInvariantCreatedBy")
-  backlogItemsCreated BacklogItem[]
-  poFeedbackCreated POFeedback[]
-  projectMemoriesAuthored ProjectMemory[] @relation("ProjectMemoryCreatedBy")
-}
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
-// SentinelSquad domain models
-model Agent {
-  id           String      @id @default(cuid())
-  key          String      @unique
-  displayName  String
-  avatarUrl    String?
-  runtime      AgentRuntime @default(MANUAL)
-  readiness    AgentReadiness @default(NOT_READY)
-  controlRole  AgentControlRole @default(BETA)
-  model        String?
-  host         String?
-  enabled      Boolean     @default(true)
-  capabilities Json?
-  lastHeartbeatAt DateTime?
-  lastHeartbeatMeta Json?
-  smokeTestPassedAt DateTime?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
-  tasks AgentTask[]
-  alphaContextWindows AlphaContextWindow[]
-  activeProjectLocks ProjectAlphaLock[] @relation("ProjectAlphaLockOwner")
-}
-
-model ChatThread {
-  id          String     @id @default(cuid())
-  kind        ThreadKind
-  ref         String
-  title       String?
-  createdById String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  createdBy User? @relation("ThreadCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  messages  ChatMessage[]
-  events    ChatEvent[]
-  memories  ProjectMemory[]
-  backlogItems BacklogItem[]
-
-  tasks AgentTask[]
-
-  @@unique([kind, ref])
-}
-
-model ChatEvent {
-  id         String          @id @default(cuid())
-  threadId   String
-  kind       ThreadEventKind
-  actorKey   String?
-  taskId     String?
-  payload    Json?
-  createdAt  DateTime        @default(now())
-
-  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-
-  @@index([threadId, createdAt])
-  @@index([kind, createdAt])
-  @@index([taskId])
-}
-
-model ProjectSession {
-  id           String               @id @default(cuid())
-  rootPath     String
-  relPath      String
-  displayName  String
-  status       ProjectSessionStatus @default(ACTIVE)
-  metadata     Json?
-  lastOpenedAt DateTime             @default(now())
-  createdById  String?
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
-
-  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  memories  ProjectMemory[]
-
-  @@unique([rootPath, relPath])
-  @@index([status, lastOpenedAt])
-  @@index([displayName])
-}
-
-model ProjectMemory {
-  id               String              @id @default(cuid())
-  projectSessionId String
-  threadId         String?
-  taskId           String?
-  sourceMessageId  String?
-  title            String
-  summary          String
-  content          String
-  tags             Json?
-  status           ProjectMemoryStatus @default(CAPTURED)
-  kind             ProjectMemoryKind   @default(THREAD)
-  sourceKind       String?
-  sourceUrl        String?
-  sourceAgentKey   String?
-  createdByUserId  String?
-  embeddingModel   String?
-  embeddingDimensions Int?
-  /// pgvector column; read/write similarity via raw SQL (see src/lib/memory.ts)
-  embedding        Unsupported("vector(768)")?
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
-
-  projectSession ProjectSession @relation(fields: [projectSessionId], references: [id], onDelete: Cascade)
-  thread         ChatThread?     @relation(fields: [threadId], references: [id], onDelete: SetNull)
-  task           AgentTask?      @relation(fields: [taskId], references: [id], onDelete: SetNull)
-  createdByUser  User?           @relation("ProjectMemoryCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
-
-  @@index([projectSessionId, createdAt])
-  @@index([projectSessionId, status, updatedAt])
-  @@index([projectSessionId, kind])
-  @@index([threadId])
-  @@index([taskId])
-}
-
-// Local backlog: one board per product scope; agents and PO use API only (kanban is read-only for PO).
-model BacklogBoard {
-  id           String   @id @default(cuid())
-  name         String
-  productScope String?  // optional scope (e.g. "sentinelsquad"); null = default board
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  goals BacklogGoal[]
-  items BacklogItem[]
-
-  @@unique([productScope])
-  @@index([productScope])
-}
-
-model BacklogGoal {
-  id          String   @id @default(cuid())
-  boardId     String
-  title       String
-  description String?
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  board BacklogBoard  @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  items BacklogItem[]
-
-  @@index([boardId])
-}
-
-model BacklogItem {
-  id                  String            @id @default(cuid())
-  boardId             String
-  goalId              String?
-  title               String
-  description         String?
-  acceptanceCriteria  Json?             // structured list of criteria (e.g. ["criterion 1", "criterion 2"])
-  status              BacklogItemStatus @default(BACKLOG)
-  priority            Int               @default(0)   // higher = more urgent
-  sortOrder           Int               @default(0)
-  createdById         String?
-  threadId            String?           // thread where item was created or last discussed
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
-
-  board   BacklogBoard  @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  goal    BacklogGoal?  @relation(fields: [goalId], references: [id], onDelete: SetNull)
-  createdBy User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  thread  ChatThread?   @relation(fields: [threadId], references: [id], onDelete: SetNull)
-  feedback POFeedback[]
-
-  @@index([boardId, status])
-  @@index([goalId])
-  @@index([threadId])
-  @@index([status, sortOrder])
-}
-
-model POFeedback {
-  id           String         @id @default(cuid())
-  backlogItemId String
-  threadId     String?
-  kind         POFeedbackKind
-  reason       String?
-  createdById  String?
-  createdAt    DateTime       @default(now())
-
-  backlogItem BacklogItem @relation(fields: [backlogItemId], references: [id], onDelete: Cascade)
-  createdBy   User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
-
-  @@index([backlogItemId])
-  @@index([threadId])
-}
-
-model ChatMessage {
-  id         String            @id @default(cuid())
-  threadId   String
-  authorType MessageAuthorType
-  authorKey  String?
-  userId     String?
-  content    String
-  meta       Json?
-  createdAt  DateTime          @default(now())
-
-  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  user   User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([threadId, createdAt])
-}
-
-model AgentTask {
-  id          String     @id @default(cuid())
-  status      TaskStatus @default(QUEUED)
-  agentKey    String
-  attemptCount Int       @default(0)
-  maxAttempts  Int       @default(3)
-  nextAttemptAt DateTime @default(now())
-  lastFailureCode String?
-  lastFailureKind String?
-  deadLetteredAt DateTime?
-  issueNumber Int?
-  threadId    String?
-  title       String
-  payload     Json?
-  createdById String?
-  startedAt   DateTime?
-  finishedAt  DateTime?
-  error       String?
-  judgementVote     String?   // APPROVE | REJECT | ESCALATE (final-judgement step)
-  judgementConfidence Float?  // 0–1
-  judgementReason    String?
-  escalatedAt       DateTime? // set when vote=ESCALATE or confidence below threshold; PO-visible
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  agent     Agent      @relation(fields: [agentKey], references: [key], onDelete: Cascade)
-  createdBy User?      @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  thread    ChatThread? @relation(fields: [threadId], references: [id], onDelete: SetNull)
-  memories  ProjectMemory[]
-  promptPackageInvariant TaskPromptPackageInvariant?
-
-  @@index([agentKey, status, createdAt])
-  @@index([status, nextAttemptAt, createdAt])
-  @@index([issueNumber])
-}
-
-model TaskPromptPackageInvariant {
-  id             String   @id @default(cuid())
-  taskId         String   @unique
-  sourceKind     String
-  sourceRef      String?
-  issueNumber    Int?
-  snapshotHash   String
-  promptText     String
-  packageBody    String?
-  packageSections Json?
-  payloadSnapshot Json?
-  createdAt      DateTime @default(now())
-
-  task AgentTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
-
-  @@index([issueNumber, createdAt])
-  @@index([sourceKind, createdAt])
-  @@index([createdAt])
-}
-
-model OrchestratorLease {
-  id              String   @id
-  ownerId         String?
-  ownerHost       String?
-  ownerPid        Int?
-  ownerAgentKey   String?
-  expiresAt       DateTime?
-  lastHeartbeatAt DateTime?
-  heartbeatCount  Int      @default(0)
-  acquiredAt      DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  audits OrchestratorLeaseAudit[]
-
-  @@index([ownerId])
-  @@index([expiresAt])
-}
-
-model OrchestratorLeaseAudit {
-  id              String   @id @default(cuid())
-  leaseId         String
-  code            String
-  message         String
-  ownerId         String?
-  previousOwnerId String?
-  metadata        Json?
-  createdAt       DateTime @default(now())
-
-  lease OrchestratorLease @relation(fields: [leaseId], references: [id], onDelete: Cascade)
-
-  @@index([leaseId, createdAt])
-  @@index([code, createdAt])
-}
-
-model LifecycleAuditEvent {
-  id        String   @id @default(cuid())
-  entityType String
-  entityId   String?
-  actorRole  String
-  action     String
-  fromState  String?
-  toState    String?
-  allowed    Boolean
-  reason     String
-  metadata   Json?
-  createdAt  DateTime @default(now())
-
-  @@index([entityType, entityId, createdAt])
-  @@index([actorRole, action, createdAt])
-  @@index([createdAt])
-}
-
-model InboundEmailEvent {
-  id                  String   @id @default(cuid())
-  externalMessageId   String?  @unique
-  channel             String   @default("email")
-  senderEmail         String
-  senderName          String?
-  subject             String
-  bodyText            String
-  authorized          Boolean  @default(false)
-  authorizationReason String
-  status              String
-  attemptCount        Int      @default(0)
-  maxAttempts         Int      @default(3)
-  nextAttemptAt       DateTime?
-  lastFailureCode     String?
-  lastFailureMessage  String?
-  threadId            String?
-  taskId              String?
-  meta                Json?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  @@index([status, createdAt])
-  @@index([senderEmail, createdAt])
-  @@index([channel, createdAt])
-}
-
-model AlphaContextWindow {
-  id                    String             @id @default(cuid())
-  projectKey            String
-  projectName           String
-  ownerAgentKey         String
-  status                AlphaContextStatus @default(OPEN)
-  activationHandoverRef String?
-  transferHandoverRef   String?
-  closeHandoverRef      String?
-  continuityNote        String?
-  contextUsagePercent   Int                @default(0)
-  contextUsageUpdatedAt DateTime?
-  contextWarningAt      DateTime?
-  contextBlockedAt      DateTime?
-  handoverPackageRef    String?
-  continuationPromptRef String?
-  handoverPackageReadyAt DateTime?
-  guardrailOverrideUntil DateTime?
-  guardrailOverrideReason String?
-  predecessorId         String?
-  activatedAt           DateTime?
-  transferredAt         DateTime?
-  closedAt              DateTime?
-  createdById           String?
-  createdAt             DateTime           @default(now())
-  updatedAt             DateTime           @updatedAt
-
-  ownerAgent Agent @relation(fields: [ownerAgentKey], references: [key], onDelete: Cascade)
-  createdBy User? @relation("AlphaContextWindowCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  predecessor AlphaContextWindow? @relation("AlphaContextWindowPredecessor", fields: [predecessorId], references: [id], onDelete: SetNull)
-  successors AlphaContextWindow[] @relation("AlphaContextWindowPredecessor")
-  lock ProjectAlphaLock?
-  auditEvents AlphaContextAuditEvent[]
-  packageInvariants AlphaContextPackageInvariant[]
-
-  @@index([projectKey, status, createdAt])
-  @@index([ownerAgentKey, status, createdAt])
-  @@index([projectName, createdAt])
-}
-
-model AlphaContextPackageInvariant {
-  id                    String                         @id @default(cuid())
-  windowId              String
-  projectKey            String
-  projectName           String
-  snapshotKind          AlphaContextPackageSnapshotKind
-  predecessorSnapshotId String?
-  sourceRef             String?
-  snapshotHash          String
-  handoverRef           String?
-  handoverPackageRef    String?
-  continuationPromptRef String?
-  continuityNote        String?
-  payloadSnapshot       Json?
-  createdById           String?
-  createdAt             DateTime                       @default(now())
-
-  window AlphaContextWindow @relation(fields: [windowId], references: [id], onDelete: Cascade)
-  predecessor AlphaContextPackageInvariant? @relation("AlphaContextPackageInvariantLineage", fields: [predecessorSnapshotId], references: [id], onDelete: SetNull)
-  successors AlphaContextPackageInvariant[] @relation("AlphaContextPackageInvariantLineage")
-  createdBy User? @relation("AlphaContextPackageInvariantCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-
-  @@index([projectKey, createdAt])
-  @@index([windowId, createdAt])
-  @@index([snapshotKind, createdAt])
-  @@index([predecessorSnapshotId])
-}
-
-model ProjectAlphaLock {
-  projectKey          String   @id
-  projectName         String
-  activeWindowId      String?  @unique
-  activeOwnerAgentKey String?
-  activatedAt         DateTime?
-  continuityRef       String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  activeWindow AlphaContextWindow? @relation(fields: [activeWindowId], references: [id], onDelete: SetNull)
-  activeOwnerAgent Agent? @relation("ProjectAlphaLockOwner", fields: [activeOwnerAgentKey], references: [key], onDelete: SetNull)
-
-  @@index([activeOwnerAgentKey])
-  @@index([projectName])
-}
-
-model AlphaContextAuditEvent {
-  id                  String   @id @default(cuid())
-  projectKey          String
-  projectName         String
-  actorRole           String
-  action              String
-  allowed             Boolean
-  reason              String
-  windowId            String?
-  conflictingWindowId String?
-  metadata            Json?
-  createdAt           DateTime @default(now())
-
-  window AlphaContextWindow? @relation(fields: [windowId], references: [id], onDelete: SetNull)
-
-  @@index([projectKey, createdAt])
-  @@index([action, createdAt])
-  @@index([windowId, createdAt])
-}
-
-model AlphaFailureEvent {
-  id              String   @id @default(cuid())
-  failureClass    String
-  severity        String
-  fallbackAction  String
-  projectKey      String?
-  projectName     String?
-  issueNumber     Int?
-  taskId          String?
-  threadId        String?
-  leaseHealth     String?
-  contextWindowId String?
-  remediation     String
-  metadata        Json?
-  createdAt       DateTime @default(now())
-
-  @@index([failureClass, createdAt])
-  @@index([projectKey, createdAt])
-  @@index([issueNumber, createdAt])
-  @@index([severity, createdAt])
-}
-
-model TrinityExecutionRun {
-  id               String   @id @default(cuid())
-  requestId        String   @unique
-  mode             String
-  provider         String
-  model            String
-  status           String
-  finalConfidence  Float?
-  attempts         Int      @default(1)
-  inputMessages    Json
-  outputText       String
-  stageTrace       Json
-  meta             Json?
-  createdAt        DateTime @default(now())
-
-  @@index([status, createdAt])
-  @@index([provider, model, createdAt])
-}
-
-model AgentGroup {
-  id          String   @id @default(cuid())
-  key         String   @unique
-  displayName String
-  description String?
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model AgentGroupMember {
-  id            String   @id @default(cuid())
-  groupId       String
-  memberType    String
-  memberAgentKey String?
-  memberGroupId String?
-  role          String?
-  createdAt     DateTime @default(now())
-
-  @@index([groupId, createdAt])
-  @@index([memberType, createdAt])
-  @@index([memberAgentKey])
-  @@index([memberGroupId])
-}
-
-model AgentRoleRanking {
-  id         String   @id @default(cuid())
-  role       String
-  agentKey   String
-  rating     Float    @default(1000)
-  matches    Int      @default(0)
-  wins       Int      @default(0)
-  losses     Int      @default(0)
-  draws      Int      @default(0)
-  confidence Float?   // rolling confidence proxy (0-1)
-  updatedAt  DateTime @updatedAt
-  createdAt  DateTime @default(now())
-
-  @@unique([role, agentKey])
-  @@index([role, rating, updatedAt])
 }

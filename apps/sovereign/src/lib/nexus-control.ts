@@ -65,6 +65,49 @@ export async function writeNexusRunArtifact(data: {
   await fs.writeFile(file, `${JSON.stringify(data, null, 2)}\n`, "utf-8");
 }
 
+import { prisma } from "@/lib/prisma";
+import { SovereignStatePayload } from "@/lib/sovereign-dag";
+
+export async function listSovereignTasks(limit = 20) {
+  try {
+    return await prisma.agentTask.findMany({
+      where: {
+        agentKey: "SOVEREIGN_DAG",
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        status: true,
+        title: true,
+        createdAt: true,
+        startedAt: true,
+        finishedAt: true,
+        payload: true,
+      },
+    });
+  } catch (e) {
+    console.error("Failed to list Sovereign tasks:", e);
+    return [];
+  }
+}
+
+export async function getSovereignTaskDetail(id: string) {
+  try {
+    const task = await prisma.agentTask.findUnique({
+      where: { id },
+    });
+    if (!task) return null;
+    return {
+      ...task,
+      payload: task.payload as unknown as SovereignStatePayload,
+    };
+  } catch (e) {
+    console.error(`Failed to get Sovereign task ${id}:`, e);
+    return null;
+  }
+}
+
 export async function readNexusModelRouting() {
   const file = path.resolve(process.cwd(), "nexus", "ChatChainConfig.json");
   try {

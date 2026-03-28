@@ -1,18 +1,11 @@
-import { redirect } from "next/navigation";
-import { Shell } from "@/components/Shell";
-import { getProjectMeta, reconcileBoardAgentOptions } from "@/lib/github";
+import { getProjectMeta, isGithubGraphqlConfigured, reconcileBoardAgentOptions } from "@/lib/github";
 import { buildAgentReadinessChecklist } from "@/lib/agent-readiness";
 import { permissionMatrixRows } from "@/lib/lifecycle-policy";
 import { getOrchestratorLeaseSnapshot } from "@/lib/orchestrator-lease";
 import { prisma } from "@/lib/prisma";
 import { readSovereignSettings } from "@/lib/settings-store";
-import { requireSession } from "@/lib/session";
 import { listUnifiedChatAgentAvailability } from "@/lib/active-agents";
 import { AGENT_MODEL_PRESETS } from "@/lib/model-presets";
-import {
-  isRuntimeRunnable,
-  listRunningWorkers
-} from "@/lib/worker-process";
 
 import {
   createAgentAction,
@@ -20,8 +13,6 @@ import {
   deleteAgentConfigAction,
   mergeCaseVariantAgentKeysAction,
   saveAgentConfigAction,
-  startAgentWorkerAction,
-  stopAgentWorkerAction,
   updateAgentReadinessAction,
   updateAgentSmokeTestAction
 } from "@/app/agents/actions";
@@ -31,14 +22,9 @@ export const dynamic = "force-dynamic";
 function heartbeatStatus(a: {
   runtime: string;
   lastHeartbeatAt: Date | null;
-  runnable: boolean;
-  isRunning: boolean;
-  sharedWorkerCoverage: boolean;
 }) {
   if (a.runtime === "MANUAL") return { label: "MANUAL", tone: "muted" as const };
-  if (a.sharedWorkerCoverage) return { label: "ONLINE", tone: "good" as const };
-  // For runnable agents, process state is authoritative for immediate online/offline UX.
-  if (a.runnable && !a.isRunning) return { label: "OFFLINE", tone: "bad" as const };
+  // For persistent sentinels, heartbeat is authoritative.
   if (!a.lastHeartbeatAt) return { label: "OFFLINE", tone: "bad" as const };
   const ageMs = Date.now() - a.lastHeartbeatAt.getTime();
   if (ageMs <= 15_000) return { label: "ONLINE", tone: "good" as const };
@@ -66,15 +52,17 @@ function pickRecommendedCanonicalKey(
   return agents
     .slice()
     .sort((a, b) => {
+      const isRunnable = a.runtime === "LOCAL" || a.runtime === "CLOUD";
       const scoreA =
-        (isRuntimeRunnable(a.runtime) ? 100 : 0) +
+        (isRunnable ? 100 : 0) +
         (a.enabled ? 30 : 0) +
         readinessRank(a.readiness) * 10 +
         (a.smokeTestPassedAt ? 8 : 0) +
         (a.lastHeartbeatAt ? 6 : 0) +
         Math.min(taskCountByKey.get(a.key) || 0, 20);
+      const isRunnableB = b.runtime === "LOCAL" || b.runtime === "CLOUD";
       const scoreB =
-        (isRuntimeRunnable(b.runtime) ? 100 : 0) +
+        (isRunnableB ? 100 : 0) +
         (b.enabled ? 30 : 0) +
         readinessRank(b.readiness) * 10 +
         (b.smokeTestPassedAt ? 8 : 0) +
@@ -112,21 +100,35 @@ function getTasteRubricVersion(metadata: unknown) {
   return value.trim();
 }
 
-export default async function AgentsPage() {
-  const session = await requireSession();
-  if (!session) redirect("/signin");
+type AgentsPageProps = {
+  searchParams: Promise<{ tab?: string }>;
+};
+
+export default async function AgentsPage({ searchParams }: AgentsPageProps) {
+  const params = await searchParams;
+  const tab: "roster" | "runtime" | "registry" =
+    params.tab === "runtime"
+      ? "runtime"
+      : params.tab === "registry"
+        ? "registry"
+        : "roster";
 
   const settings = await readSovereignSettings();
   const planningSyncEnabled = process.env.SOVEREIGN_ENABLE_GITHUB_BOARD === "true";
   let boardAgents: string[] = [];
   let boardLoadError: string | null = null;
   if (planningSyncEnabled) {
-    try {
-      const meta = await getProjectMeta();
-      const agentField = meta.fields.find((f) => f.name === "Agent");
-      boardAgents = agentField?.options?.map((o) => o.name) ?? [];
-    } catch (e) {
-      boardLoadError = e instanceof Error ? e.message : String(e);
+    if (!isGithubGraphqlConfigured()) {
+      boardLoadError =
+        "SOVEREIGN_ENABLE_GITHUB_BOARD=true but no token: set SOVEREIGN_GITHUB_TOKEN or GITHUB_TOKEN in apps/sovereign/.env.";
+    } else {
+      try {
+        const meta = await getProjectMeta();
+        const agentField = meta.fields.find((f) => f.name === "Agent");
+        boardAgents = agentField?.options?.map((o) => o.name) ?? [];
+      } catch (e) {
+        boardLoadError = e instanceof Error ? e.message : String(e);
+      }
     }
   }
 
@@ -174,19 +176,13 @@ export default async function AgentsPage() {
     settings.agents.map((row) => [row.agentName.toLowerCase(), row])
   );
   const boardAgentSet = new Set(boardAgents.map((k) => k.toLowerCase()));
-  const runningWorkers = listRunningWorkers();
   const leaseSnapshot = await getOrchestratorLeaseSnapshot();
   const lifecycleRows = permissionMatrixRows();
   const lifecycleAudits = await prisma.lifecycleAuditEvent.findMany({
     orderBy: { createdAt: "desc" },
     take: 10
   });
-  const runningKeys = new Set(
-    runningWorkers.map((w) => w.agentKey).filter(Boolean) as string[]
-  );
-  const hasAnyWorkerProcess = runningWorkers.length > 0;
   const hasHealthyOrchestrator =
-    hasAnyWorkerProcess &&
     Boolean(leaseSnapshot.ownerAgentKey) &&
     (leaseSnapshot.health === "HEALTHY" || leaseSnapshot.health === "EXPIRING");
   const duplicateGroups = Array.from(
@@ -208,11 +204,10 @@ export default async function AgentsPage() {
   const betaCount = visibleAgents.filter((a) => a.controlRole !== "ALPHA").length;
 
   return (
-    <Shell
-      title="Agents"
-      subtitle="Local agent registry (DB) with optional board-linked discovery"
-    >
-      <div className="mb-3 rounded-2xl border border-white/12 bg-white/5 p-4">
+    <>
+      {tab === "runtime" ? (
+        <>
+      <div className="mb-3 ds-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="text-sm font-semibold">Orchestrator hard lease</div>
@@ -279,7 +274,7 @@ export default async function AgentsPage() {
           <div className="mt-1 text-[11px] text-white/70">{leaseSnapshot.lastAudit.message}</div>
         ) : null}
       </div>
-      <div className="mb-3 rounded-2xl border border-white/12 bg-white/5 p-4">
+      <div className="mb-3 ds-card p-4">
         <div className="text-sm font-semibold">Permission matrix + lifecycle audit</div>
         <div className="mt-1 text-xs text-white/65">
           Deterministic transition policy (allowed/denied with explicit reasons).
@@ -347,7 +342,11 @@ export default async function AgentsPage() {
           ) : null}
         </div>
       </div>
-      <div className="mb-3 rounded-2xl border border-white/12 bg-white/5 p-4">
+        </>
+      ) : null}
+      {tab === "registry" ? (
+        <>
+      <div className="mb-3 ds-card p-4">
         <div className="text-sm font-semibold">Add agent</div>
         <div className="mt-1 text-xs text-white/60">
           Creates (or updates) an agent in local registry. New/changed runtime starts as `NOT_READY`.
@@ -412,7 +411,7 @@ export default async function AgentsPage() {
           </div>
         </form>
       </div>
-      <div className="mb-3 rounded-2xl border border-white/12 bg-white/5 p-4">
+      <div className="mb-3 ds-card p-4">
         <div className="text-sm font-semibold">Board Agent integrity</div>
         <div className="mt-1 text-xs text-white/65">
           Reconciliation between GitHub Project <code>Agent</code> options and DB runtime agents.
@@ -511,21 +510,18 @@ export default async function AgentsPage() {
           Optional planning sync unavailable: {boardLoadError}
         </div>
       ) : null}
+        </>
+      ) : null}
+      {tab === "roster" ? (
+        <>
       <div className="grid gap-3 md:grid-cols-2">
         {visibleAgents.map((a) => {
           const key = a.key;
           const unifiedAvailability = availabilityByKey.get(key.toLowerCase()) ?? null;
           const agentConfig = settingsByAgentName.get(key.toLowerCase()) || null;
-          const runnable =
-            isRuntimeRunnable(a.runtime) && a.enabled && a.controlRole === "ALPHA";
-          const directRunning = runningKeys.has(key);
-          const sharedWorkerCoverage =
-            !directRunning &&
-            a.enabled &&
-            isRuntimeRunnable(a.runtime) &&
-            a.controlRole !== "ALPHA" &&
-            hasHealthyOrchestrator;
-          const isRunning = directRunning || sharedWorkerCoverage;
+          const statusLabel = "N/A"; // Legacy worker coverage removed
+          const isRunning = false;
+          const sharedWorkerCoverage = false;
           const readiness = a.readiness ?? "NOT_READY";
           const checklist = buildAgentReadinessChecklist({
             agent: a,
@@ -535,10 +531,7 @@ export default async function AgentsPage() {
           });
           const hb = heartbeatStatus({
             runtime: a.runtime,
-            lastHeartbeatAt: a.lastHeartbeatAt,
-            runnable,
-            isRunning,
-            sharedWorkerCoverage
+            lastHeartbeatAt: a.lastHeartbeatAt
           });
           const statusClass =
             hb?.tone === "good"
@@ -558,7 +551,7 @@ export default async function AgentsPage() {
           return (
             <div
               key={key}
-              className="rounded-2xl border border-white/12 bg-white/5 p-5"
+              className="ds-card p-5"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="text-lg font-semibold">{a.displayName || key}</div>
@@ -773,55 +766,23 @@ export default async function AgentsPage() {
                   </form>
                 ) : null}
               </div>
-              {runnable ? (
-                <div className="mt-4 flex items-center gap-2">
-                  {!isRunning ? (
-                    <form action={startAgentWorkerAction}>
-                      <input type="hidden" name="agentKey" value={key} />
-                      <button
-                        type="submit"
-                        className="rounded-xl border border-emerald-300/25 bg-emerald-200/10 px-3 py-1.5 text-xs font-medium text-emerald-50 hover:bg-emerald-200/20"
-                      >
-                        Start Worker
-                      </button>
-                    </form>
-                  ) : (
-                    <form action={stopAgentWorkerAction}>
-                      <input type="hidden" name="agentKey" value={key} />
-                      <button
-                        type="submit"
-                        className="rounded-xl border border-rose-300/25 bg-rose-200/10 px-3 py-1.5 text-xs font-medium text-rose-50 hover:bg-rose-200/20"
-                      >
-                        Stop Worker
-                      </button>
-                    </form>
-                  )}
-                  <div className="text-xs text-white/65">
-                    {directRunning
-                      ? "Process running"
-                      : sharedWorkerCoverage
-                      ? "Covered by shared ALPHA orchestrator"
-                      : "Process stopped"}
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-4 text-xs text-white/55">
-                  {!a.enabled
-                    ? "Agent is disabled."
-                    : a.controlRole !== "ALPHA"
-                    ? "BETA role: execution-only (cannot run control-plane worker)."
-                    : "Manual agent (no runnable worker in this version)."}
-                </div>
-              )}
+              <div className="mt-4 text-xs text-white/55">
+                {a.runtime === "MANUAL"
+                  ? "Manual agent: health is managed by external tasks."
+                  : "Persistent sentinel: heartbeat is managed by local daemon."
+                }
+              </div>
             </div>
           );
         })}
       </div>
       {visibleAgents.length === 0 ? (
-        <div className="mt-4 rounded-xl border border-white/12 bg-white/5 px-3 py-2 text-xs text-white/70">
+        <div className="mt-4 ds-hint">
           No runnable agents yet. Configure at least one agent with runtime `LOCAL` or `CLOUD`.
         </div>
       ) : null}
-    </Shell>
+        </>
+      ) : null}
+    </>
   );
 }

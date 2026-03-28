@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { LocalServiceStatus } from "@/lib/local-system-status";
-import type { RunningWorker } from "@/lib/worker-process";
 
 function statusChip(status: LocalServiceStatus["status"]) {
   if (status === "HEALTHY") return "border-emerald-400/40 bg-emerald-500/15 text-emerald-100";
@@ -10,13 +9,12 @@ function statusChip(status: LocalServiceStatus["status"]) {
 
 export function RunStatusSection(props: {
   services: LocalServiceStatus[];
-  workers: RunningWorker[];
   databaseQueryOk: boolean | null;
 }) {
-  const { services, workers, databaseQueryOk } = props;
+  const { services, databaseQueryOk } = props;
 
   return (
-    <section className="mb-8 rounded-2xl border border-white/12 bg-white/5 p-5">
+    <section className="mb-8 ds-card p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="text-base font-semibold text-white/95">Live status</div>
@@ -70,28 +68,8 @@ export function RunStatusSection(props: {
       ) : null}
 
       <div className="mt-4 border-t border-white/10 pt-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-white/55">
-          Worker processes (dev)
-        </div>
-        {workers.length === 0 ? (
-          <div className="mt-2 text-sm text-white/60">
-            No <code className="rounded bg-black/30 px-1">scripts/worker.js</code> processes detected.
-            Use launchd or run <code className="rounded bg-black/30 px-1">npm run worker</code> in a terminal.
-          </div>
-        ) : (
-          <ul className="mt-2 space-y-1 font-mono text-xs text-white/80">
-            {workers.map((w) => (
-              <li key={w.pid}>
-                pid {w.pid}
-                {w.agentKey ? ` · agent=${w.agentKey}` : ""}
-              </li>
-            ))}
-          </ul>
-        )}
-        <div className="mt-2">
-          <Link href="/agents" className="text-xs text-cyan-200/90 underline hover:text-cyan-100">
-            Agents → start/stop worker per agent
-          </Link>
+        <div className="text-xs text-white/55">
+          Sentinels are managed by the Immortality Protocol (launchd).
         </div>
       </div>
     </section>

@@ -1,6 +1,6 @@
 # {sovereign} Project Board — Single Source of Truth (SSOT)
 
-**Purpose:** This document is the **canonical reference** for what the project board contains, in what order work is done, and where the detailed definitions live. Use it when creating or updating issues in **mvp-factory-control** or any other project board. No other list overrides this without going through the [contract change process](SOVEREIGN_AGENT_TEAM_CONTRACT.md#43-change-process-for-this-contract).
+**Purpose:** This document is the **canonical reference** for what belongs on the project board, how it maps to LLDs and extended work, and where detailed definitions live. **Implementation order and delivery status** are owned by the **[MVP Factory Board](https://github.com/users/moldovancsaba/projects/1)** (GitHub Projects): filter by Product `{sovereign}` — board columns and linked issue state are authoritative for what is queued, in progress, or done. Use this file when creating or updating issues in **mvp-factory-control** or adding cards to that board. Contract-level changes still go through the [contract change process](SOVEREIGN_AGENT_TEAM_CONTRACT.md#43-change-process-for-this-contract).
 
 ---
 
@@ -9,11 +9,12 @@
 | Question | Answer (SSOT) |
 |----------|----------------|
 | What is law (invariants, obligations)? | [SOVEREIGN_AGENT_TEAM_CONTRACT.md](SOVEREIGN_AGENT_TEAM_CONTRACT.md) |
-| What do we do, in what order, and what are the deliverables? | [SOVEREIGN_MASTER_PLAN_AND_LLD.md](SOVEREIGN_MASTER_PLAN_AND_LLD.md) |
+| **What is in progress / done next for implementation?** | **[MVP Factory Board](https://github.com/users/moldovancsaba/projects/1)** — portfolio board; filter Product `{sovereign}`. Board + linked issue state override ad-hoc lists. |
+| What do we do, in what order, and what are the deliverables (planning / LLD scope)? | [SOVEREIGN_MASTER_PLAN_AND_LLD.md](SOVEREIGN_MASTER_PLAN_AND_LLD.md) |
 | How does the product board (backlog) work — pipeline, triage, time language? | [PRODUCT_BOARD_AND_TRIAGE.md](PRODUCT_BOARD_AND_TRIAGE.md) |
-| What is on the project board (issues to build or update)? | **This document** — LLDs in §2, extended `{sovereign}` issues in §2.1, repo-first shipments in §2.2, and how to deliver in §3.2–3.3. |
+| What is on the project board (issues to build or update), and how does this repo mirror it? | **This document** — LLDs in §2, extended `{sovereign}` issues in §2.1, repo-first shipments in §2.2, and how to deliver in §3.2–3.3. **Do not** treat [moldovancsaba/sovereign](https://github.com/moldovancsaba/sovereign) issues alone as implementation SSOT; they trace to board cards. |
 
-When in doubt: **Contract → Master Plan → Product Board doc → this SSOT.** Scope and acceptance for each **numbered LLD** are defined in the Master Plan (Part C). **Extended backlog** issues (§2.1) carry acceptance in their GitHub bodies until promoted to an LLD via the contract process.
+When in doubt: **Contract → Master Plan → [MVP Factory Board](https://github.com/users/moldovancsaba/projects/1) (implementation truth) → this SSOT (mapping + checklist) → sovereign repo PRs.** Scope and acceptance for each **numbered LLD** are defined in the Master Plan (Part C). **Extended backlog** issues (§2.1) carry acceptance in their GitHub bodies until promoted to an LLD via the contract process.
 
 ---
 
@@ -45,9 +46,9 @@ These issues are **real portfolio work** for the same product but are **not** ro
 | [#432](https://github.com/moldovancsaba/mvp-factory-control/issues/432) | Open-source repository hardening and macOS installability baseline | Packaging, install UX, and repo hygiene beyond LLD-001 scope |
 | [#433](https://github.com/moldovancsaba/mvp-factory-control/issues/433) | Memory annotation, review, and knowledge-curation workflow | Builds on LLD-006 foundation; see [HANDOVER.md](../HANDOVER.md) “Partially implemented” |
 | [#436](https://github.com/moldovancsaba/mvp-factory-control/issues/436) | Optional: circuit breaker for model backends | Operational resilience; complements LLD-010 |
-| [#448](https://github.com/moldovancsaba/mvp-factory-control/issues/448) | Mac mini / second Mac — greenfield deploy runbook (DB → app → worker → agents) | Decomposes “install on another Mac and work with agents”; supports [#432](https://github.com/moldovancsaba/mvp-factory-control/issues/432) |
-| [#449](https://github.com/moldovancsaba/mvp-factory-control/issues/449) | Operator-agnostic setup UX — no hardcoded dev paths in Run / SETUP | Makes copy-paste setup safe on any machine |
-| [#450](https://github.com/moldovancsaba/mvp-factory-control/issues/450) | macOS app + background services smoke test on clean install | After [#448](https://github.com/moldovancsaba/mvp-factory-control/issues/448); validates Sovereign.app / launchd path |
+| [#448](https://github.com/moldovancsaba/mvp-factory-control/issues/448) | Mac mini / second Mac — greenfield deploy runbook (DB → app → worker → agents) | **Closed** — [MAC_MINI_DEPLOY.md](setup/MAC_MINI_DEPLOY.md); §8 engineering pass 2026-03-27 |
+| [#449](https://github.com/moldovancsaba/mvp-factory-control/issues/449) | Operator-agnostic setup UX — no hardcoded dev paths in Run / SETUP | **Closed** — `/run` + docs + `os.homedir()` defaults |
+| [#450](https://github.com/moldovancsaba/mvp-factory-control/issues/450) | macOS app + background services smoke test on clean install | **Closed** — [MACOS_APP_CLEAN_INSTALL_SMOKE.md](setup/MACOS_APP_CLEAN_INSTALL_SMOKE.md); recorded smoke 2026-03-27 |
 
 ### 2.2 Repo-first shipments (board mirror for PO sign-off)
 
@@ -56,6 +57,8 @@ Work **merged to [sovereign](https://github.com/moldovancsaba/sovereign) `main`*
 | Shipment | Spec / entrypoints | Board issue |
 |----------|-------------------|-------------|
 | **Hybrid orchestrator v1** | [HYBRID_ORCHESTRATOR_SPEC_V1.md](architecture/HYBRID_ORCHESTRATOR_SPEC_V1.md); `apps/sovereign/src/lib/hybrid-orchestrator/`; `POST /api/orchestrator/hybrid` | [#447](https://github.com/moldovancsaba/mvp-factory-control/issues/447) |
+| **v1.1.1 hardening** (staffing calibration, team policy, MLX scaffold, Trinity e2e reliability) | [docs/API_V1.md](API_V1.md); PRs [#17](https://github.com/moldovancsaba/sovereign/pull/17)–[#20](https://github.com/moldovancsaba/sovereign/pull/20) | [sovereign#12–#16](https://github.com/moldovancsaba/sovereign/issues?q=is%3Aissue+12+13+14+15+16) (closed); board drives priority vs extended mvp-factory-control issues |
+| **Installability + CI** (one-command macOS install, Docker portability pulls) | `npm run install:macos`; `scripts/install-sovereign-macos.sh`; Docker bootstrap + workflow | [sovereign#22](https://github.com/moldovancsaba/sovereign/issues/22), [sovereign#23](https://github.com/moldovancsaba/sovereign/issues/23) (closed); supports [#432](https://github.com/moldovancsaba/mvp-factory-control/issues/432) / [#448](https://github.com/moldovancsaba/mvp-factory-control/issues/448)–[#450](https://github.com/moldovancsaba/mvp-factory-control/issues/450) |
 
 ---
 
@@ -125,22 +128,24 @@ Use this to track that the plan is reflected on the board and to tick off comple
 | Memory curation | [#433](https://github.com/moldovancsaba/mvp-factory-control/issues/433) | Open | Post–LLD-006 UX and workflows |
 | Circuit breaker | [#436](https://github.com/moldovancsaba/mvp-factory-control/issues/436) | Open | Optional; tie acceptance to runtime metrics / failure modes |
 | Hybrid orchestrator v1 | [#447](https://github.com/moldovancsaba/mvp-factory-control/issues/447) | Open | PO sign-off per issue AC; card on [MVP Factory Board](https://github.com/users/moldovancsaba/projects/1); `npm run verify` + API smoke |
-| Mac mini greenfield runbook | [#448](https://github.com/moldovancsaba/mvp-factory-control/issues/448) | Open | Second-machine deploy + agents; drill on clean Mac |
-| Operator-agnostic paths | [#449](https://github.com/moldovancsaba/mvp-factory-control/issues/449) | Open | Run page + SETUP copy |
-| Sovereign.app clean install smoke | [#450](https://github.com/moldovancsaba/mvp-factory-control/issues/450) | Open | After #448 |
+| macOS install (sovereign repo trace) | [sovereign#22](https://github.com/moldovancsaba/sovereign/issues/22) | Closed | Delivered [PR #21](https://github.com/moldovancsaba/sovereign/pull/21); portfolio priority remains **[#432](https://github.com/moldovancsaba/mvp-factory-control/issues/432)** / **[#448](https://github.com/moldovancsaba/mvp-factory-control/issues/448)–[#450](https://github.com/moldovancsaba/mvp-factory-control/issues/450)** on the board |
+| CI Docker Hub pull resilience (sovereign repo trace) | [sovereign#23](https://github.com/moldovancsaba/sovereign/issues/23) | Closed | Delivered on `main` ([`96a96f4`](https://github.com/moldovancsaba/sovereign/commit/96a96f4)); keeps portability gate aligned with board-driven releases |
+| Mac mini greenfield runbook | [#448](https://github.com/moldovancsaba/mvp-factory-control/issues/448) | Closed | [MAC_MINI_DEPLOY.md](setup/MAC_MINI_DEPLOY.md); engineering validation 2026-03-27 (+ §8 note); reopen if field drill finds gaps |
+| Operator-agnostic paths | [#449](https://github.com/moldovancsaba/mvp-factory-control/issues/449) | Closed | Run page, [BUILD_AND_RUN.md](BUILD_AND_RUN.md), CONTRIBUTING, API_V1, HANDOVER verify, IDE/settings homedir defaults |
+| Sovereign.app clean install smoke | [#450](https://github.com/moldovancsaba/mvp-factory-control/issues/450) | Closed | [MACOS_APP_CLEAN_INSTALL_SMOKE.md](setup/MACOS_APP_CLEAN_INSTALL_SMOKE.md) — recorded smoke row 2026-03-27 |
 
 ### 4.3 Handover checkpoint (70 PROTOCOL)
 
-*Updated **2026-03-26** — PO triggered “70” (context / session handover).*
+*Updated **2026-03-27** — Mac mini track **[#448](https://github.com/moldovancsaba/mvp-factory-control/issues/448)** / **[#449](https://github.com/moldovancsaba/mvp-factory-control/issues/449)** / **[#450](https://github.com/moldovancsaba/mvp-factory-control/issues/450)** closed; implementation order remains the [MVP Factory Board](https://github.com/users/moldovancsaba/projects/1).*
 
 | Area | Status | Next step |
 |------|--------|-----------|
-| LLD-007–010 | Open on board ([#443](https://github.com/moldovancsaba/mvp-factory-control/issues/443)–[#446](https://github.com/moldovancsaba/mvp-factory-control/issues/446)) | PO sign-off **#443** / **#447** when AC met; engineering: pick **#448** runbook + **#449** de-hardcode paths for Mac mini story |
-| Mac mini deploy | **#448–#450** on [MVP Factory Board](https://github.com/users/moldovancsaba/projects/1) | Implement **#448** doc + drill; then **#449**; then **#450** |
+| LLD-007–010 | Open on board ([#443](https://github.com/moldovancsaba/mvp-factory-control/issues/443)–[#446](https://github.com/moldovancsaba/mvp-factory-control/issues/446)) | PO sign-off **#443** / **#447** when AC met |
+| Mac mini deploy | **#448–#450** on [MVP Factory Board](https://github.com/users/moldovancsaba/projects/1) | **#448–#450** closed (2026-03-27); field follow-ups via **[#432](https://github.com/moldovancsaba/mvp-factory-control/issues/432)** if needed |
 | Umbrella OSS / install | [#432](https://github.com/moldovancsaba/mvp-factory-control/issues/432) Open | Informed by **#448–#450** completion |
 | Blockers | None recorded | — |
 
-**Repo:** [moldovancsaba/sovereign](https://github.com/moldovancsaba/sovereign) branch `main` — confirm tip with `git log -1`. See [HANDOVER.md](../HANDOVER.md) log (2026-03-26 **70 PROTOCOL** entry).
+**Repo:** [moldovancsaba/sovereign](https://github.com/moldovancsaba/sovereign) branch `main` — confirm tip with `git log -1`. See [HANDOVER.md](../HANDOVER.md) log (2026-03-27 sync + 2026-03-26 **70 PROTOCOL**).
 
 ---
 

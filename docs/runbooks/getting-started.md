@@ -2,6 +2,8 @@
 
 Local-first control plane: web app, worker, Postgres, optional MCP servers.
 
+**New Mac / second machine (greenfield):** use the canonical path in [docs/setup/MAC_MINI_DEPLOY.md](../setup/MAC_MINI_DEPLOY.md) first; then return here for MCP and optional wiki.
+
 ## Prerequisites
 
 - Node.js and npm (see repo root `README.md`)
@@ -12,7 +14,7 @@ Local-first control plane: web app, worker, Postgres, optional MCP servers.
 1. **Repository root:** install and generate Prisma client: `npm run bootstrap`
 2. **Database:** `npm run db:up` (or point `DATABASE_URL` in `apps/sovereign/.env`)
 3. **Migrations:** `cd apps/sovereign && npx prisma migrate dev`
-4. **App:** from repo root, `npm run dev` → [http://127.0.0.1:3007](http://127.0.0.1:3007)
+4. **App:** from repo root, `npm run dev` → [http://localhost:3007](http://localhost:3007) (use **`localhost`** with `NEXTAUTH_URL`)
 5. **Worker:** separate terminal, `cd apps/sovereign && npm run worker` (requires agent key — see **Agents** in the app)
 
 ## MCP (agents / IDE)

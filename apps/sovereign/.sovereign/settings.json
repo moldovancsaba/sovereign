@@ -1,0 +1,66 @@
+{
+  "localProjectFolder": "/Users/moldovancsaba/Projects",
+  "agents": [
+    {
+      "agentId": "bootstrap-controller",
+      "agentName": "Controller",
+      "agentUrl": "http://127.0.0.1:11434",
+      "agentModel": "llama3.2:3b",
+      "agentApiKeyEnv": ""
+    },
+    {
+      "agentId": "bootstrap-drafter",
+      "agentName": "Drafter",
+      "agentUrl": "http://127.0.0.1:11434",
+      "agentModel": "llama3.2:3b",
+      "agentApiKeyEnv": ""
+    },
+    {
+      "agentId": "bootstrap-gwen",
+      "agentName": "Gwen",
+      "agentUrl": "http://127.0.0.1:11434",
+      "agentModel": "llama3.2:3b",
+      "agentApiKeyEnv": ""
+    },
+    {
+      "agentId": "bootstrap-writer",
+      "agentName": "Writer",
+      "agentUrl": "http://127.0.0.1:11434",
+      "agentModel": "llama3.2:3b",
+      "agentApiKeyEnv": ""
+    }
+  ],
+  "projects": [
+    {
+      "projectId": "06ba310d506b4fae86e738321a46ca56",
+      "projectName": "Sovereign",
+      "projectUrl": "http://localhost:3007",
+      "projectGithub": "https://github.com/moldovancsaba/sovereign.git",
+      "vars": [
+        {
+          "key": "APP_PATH",
+          "value": "/Users/moldovancsaba/Projects/sovereign/apps/sovereign"
+        },
+        {
+          "key": "ROADMAP_DOC",
+          "value": "/Users/moldovancsaba/Projects/sovereign/docs/SOVEREIGN_DELIVERY_ROADMAP.md"
+        },
+        {
+          "key": "HANDOVER_DOC",
+          "value": "/Users/moldovancsaba/Projects/sovereign/HANDOVER.md"
+        },
+        {
+          "key": "SETUP_DOC",
+          "value": "/Users/moldovancsaba/Projects/sovereign/docs/SETUP.md"
+        }
+      ]
+    }
+  ],
+  "commandAccess": [],
+  "shellAccess": {
+    "inheritFullProcessEnv": true,
+    "defaultCwd": "/Users/moldovancsaba/Projects/sovereign/apps/sovereign"
+  },
+  "tasteRubric": null,
+  "updatedAt": "2026-03-28T15:00:41.881Z"
+}

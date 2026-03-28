@@ -1,5 +1,6 @@
 import { promises as fs } from "node:fs";
 import fsSync from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { exec } from "node:child_process";
 import { sovereignEnvDefault } from "@/lib/env-sovereign";
@@ -10,7 +11,7 @@ type TreeNode = {
   relPath: string;
 };
 
-const DEFAULT_IDE_ROOT = "/Users/moldovancsaba/Projects";
+const DEFAULT_IDE_ROOT = path.join(os.homedir(), "Projects");
 const DEFAULT_COMMAND_PROFILES_PATH = path.resolve(process.cwd(), ".sovereign", "ide-command-profiles.json");
 const DEFAULT_UNSAFE_CONFIRM_PHRASE = "I UNDERSTAND THIS ENABLES FULL LOCAL ACCESS";
 

@@ -68,7 +68,7 @@ fi
 
 echo ""
 echo "Sovereign install completed."
-echo "- App URL: http://127.0.0.1:3007"
+echo "- App URL: http://localhost:3007"
 echo "- Logs:"
 echo "  - /tmp/sovereign-dev.log"
 echo "  - /tmp/sovereign-worker.log"

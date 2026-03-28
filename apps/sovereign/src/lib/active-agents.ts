@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { sovereignEnv } from "@/lib/env-sovereign";
 import { getOrchestratorLeaseSnapshot } from "@/lib/orchestrator-lease";
-import { isRuntimeRunnable, listRunningWorkers } from "@/lib/worker-process";
 
 const HEARTBEAT_MAX_AGE_MS = Number(
   sovereignEnv("SOVEREIGN_HEARTBEAT_MAX_AGE_MS") || "120000"
@@ -34,7 +33,6 @@ function hasUnifiedChatCoverage(params: {
   runtime: "LOCAL" | "CLOUD" | "MANUAL";
   controlRole: "ALPHA" | "BETA";
   readiness: "NOT_READY" | "READY" | "PAUSED";
-  directRunning: boolean;
   hasRecentHeartbeat: boolean;
   leaseOwnedByAgent: boolean;
   hasHealthyOrchestrator: boolean;
@@ -45,7 +43,7 @@ function hasUnifiedChatCoverage(params: {
       reason: "Agent is disabled."
     };
   }
-  if (!isRuntimeRunnable(params.runtime)) {
+  if (!(params.runtime === "LOCAL" || params.runtime === "CLOUD")) {
     return {
       active: false,
       reason: `Agent runtime ${params.runtime} is not runnable in unified chat.`
@@ -57,7 +55,7 @@ function hasUnifiedChatCoverage(params: {
       reason: `Agent readiness is ${params.readiness}.`
     };
   }
-  if (params.directRunning || params.leaseOwnedByAgent || params.hasRecentHeartbeat) {
+  if (params.leaseOwnedByAgent || params.hasRecentHeartbeat) {
     return {
       active: true,
       reason: null
@@ -73,8 +71,8 @@ function hasUnifiedChatCoverage(params: {
     active: false,
     reason:
       params.controlRole === "ALPHA"
-        ? "No active ALPHA worker is running for this agent."
-        : "No healthy ALPHA orchestrator worker is available to execute BETA tasks."
+        ? "No active ALPHA sentinel heartbeat detected."
+        : "No healthy ALPHA orchestrator available to execute BETA tasks."
   };
 }
 
@@ -102,17 +100,11 @@ export async function listUnifiedChatAgentAvailability(): Promise<
     getOrchestratorLeaseSnapshot()
   ]);
 
-  const runningWorkers = listRunningWorkers();
-  const runningKeys = new Set(
-    runningWorkers.map((worker) => worker.agentKey).filter(Boolean) as string[]
-  );
   const hasHealthyOrchestrator =
-    runningWorkers.length > 0 &&
     Boolean(leaseSnapshot.ownerAgentKey) &&
     (leaseSnapshot.health === "HEALTHY" || leaseSnapshot.health === "EXPIRING");
 
   return agents.map((agent) => {
-    const directRunning = runningKeys.has(agent.key);
     const lastHeartbeatMs = agent.lastHeartbeatAt ? new Date(agent.lastHeartbeatAt).getTime() : 0;
     const hasRecentHeartbeat =
       Boolean(lastHeartbeatMs) && Date.now() - lastHeartbeatMs <= HEARTBEAT_MAX_AGE_MS;
@@ -126,7 +118,6 @@ export async function listUnifiedChatAgentAvailability(): Promise<
       runtime: agent.runtime,
       controlRole: agent.controlRole,
       readiness: agent.readiness,
-      directRunning,
       hasRecentHeartbeat,
       leaseOwnedByAgent,
       hasHealthyOrchestrator

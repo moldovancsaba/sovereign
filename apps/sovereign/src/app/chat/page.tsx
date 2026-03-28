@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Shell } from "@/components/Shell";
 import { requireSession } from "@/lib/session";
@@ -305,12 +306,9 @@ export default async function ChatPage() {
   });
 
   return (
-    <Shell
-      title="Chat"
-      subtitle="Unified transcript for all agents. Mention an active agent to queue work (e.g. @Controller review the backlog)."
-    >
-      <div className="mb-4 grid gap-3 md:grid-cols-3">
-        <div className="rounded-2xl border border-emerald-300/20 bg-emerald-300/10 p-4">
+    <Shell variant="work" title="Chat">
+      <section aria-label="Chat status" className="mb-3 grid gap-2 md:grid-cols-3">
+        <div className="rounded-xl border border-emerald-300/20 bg-emerald-300/10 p-3">
           <div className="text-xs uppercase tracking-wide text-emerald-100/70">Latest verdict</div>
           <div className="mt-2 text-sm text-emerald-50">
             {commandCenterSummary.latestJudgement?.meta?.outcome
@@ -355,7 +353,7 @@ export default async function ChatPage() {
             </div>
           ) : null}
         </div>
-        <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4">
+        <div className="rounded-xl border border-amber-300/20 bg-amber-300/10 p-3">
           <div className="text-xs uppercase tracking-wide text-amber-100/70">Unresolved blocker</div>
           <div className="mt-2 text-sm text-amber-50">
             {commandCenterSummary.latestManualRequired
@@ -374,7 +372,7 @@ export default async function ChatPage() {
             </div>
           ) : null}
         </div>
-        <div className="rounded-2xl border border-rose-300/20 bg-rose-300/10 p-4">
+        <div className="rounded-xl border border-rose-300/20 bg-rose-300/10 p-3">
           <div className="text-xs uppercase tracking-wide text-rose-100/70">Recent tool failures</div>
           <div className="mt-2 text-sm text-rose-50">
             {commandCenterSummary.recentToolFailureCount} failure
@@ -388,29 +386,37 @@ export default async function ChatPage() {
               : "No recorded tool failures."}
           </div>
         </div>
-      </div>
-        <div className="mb-4 rounded-2xl border border-white/12 bg-white/5 p-4">
-        <div className="text-sm font-medium text-white/90">Operator shortcuts</div>
-        <div className="mt-2 grid gap-2 text-xs text-white/65 md:grid-cols-3">
-          <div className="rounded-xl border border-white/10 bg-black/10 px-3 py-2">
-            <span className="font-mono text-white/85">/agents</span> opens the live agent roster.
-          </div>
-          <div className="rounded-xl border border-white/10 bg-black/10 px-3 py-2">
-            <span className="font-mono text-white/85">@Controller &lt;task&gt;</span> queues ALPHA orchestration work.
-          </div>
-          <div className="rounded-xl border border-white/10 bg-black/10 px-3 py-2">
-            <span className="font-mono text-white/85">@Writer &lt;task&gt;</span> queues implementation work directly.
-          </div>
-        </div>
+      </section>
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-white/[0.06] pb-3 text-[11px] text-white/55">
+        <span className="font-mono text-white/80">@Controller</span>
+        <span className="text-white/40">/</span>
+        <span className="font-mono text-white/80">@Writer</span>
+        <span className="text-white/45">queue work</span>
+        <span className="hidden sm:inline text-white/35" aria-hidden>
+          ·
+        </span>
+        <Link
+          href="/agents"
+          className="text-[color:var(--accent)] underline-offset-2 hover:underline"
+        >
+          Agents
+        </Link>
+        <Link
+          href="/run"
+          className="text-[color:var(--accent)] underline-offset-2 hover:underline"
+        >
+          Run
+        </Link>
+        <span className="text-white/40">· Menu → Settings</span>
         {hiddenHistoricalNoiseCount > 0 ? (
-          <div className="mt-3 rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs text-amber-100">
-            Hidden {hiddenHistoricalNoiseCount} stale bootstrap/system warning
-            {hiddenHistoricalNoiseCount === 1 ? "" : "s"} from earlier startup attempts.
-          </div>
+          <span className="w-full text-amber-200/80 sm:w-auto">
+            · Hidden {hiddenHistoricalNoiseCount} stale startup warning
+            {hiddenHistoricalNoiseCount === 1 ? "" : "s"}
+          </span>
         ) : null}
       </div>
-      <div className="rounded-2xl border border-white/12 bg-white/5">
-        <div className="max-h-[55vh] overflow-auto p-5">
+      <div className="ds-card">
+        <div className="max-h-[min(62vh,780px)] overflow-auto p-4 md:p-5">
           <div className="space-y-4">
             {visibleTimeline.map((entry) => {
               if (entry.type === "event") {

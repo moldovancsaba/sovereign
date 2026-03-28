@@ -108,4 +108,8 @@ if [[ "$APP_PARENT" == "$HOME/Applications" ]]; then
 fi
 echo ""
 echo "Launch now: open \"$APP_DIR\""
+echo ""
+echo "Native shell is compiled from tools/macos/SovereignDesktop/main.swift.template on each install."
+echo "If the loader still shows literal \"{sovereign}\" or an old version in the title bar, quit Sovereign (⌘Q),"
+echo "run this script again from an updated clone, then open the .app path printed above."
 open "$APP_DIR" || true

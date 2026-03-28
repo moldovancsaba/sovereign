@@ -2,6 +2,13 @@
 
 This document defines the supported local build and launch flows for `{sovereign}`.
 
+Use **your clone directory** everywhere you see `<repo>` below, or set a variable once:
+
+```bash
+export SOVEREIGN_REPO="$(git rev-parse --show-toplevel)"
+cd "$SOVEREIGN_REPO"
+```
+
 ## Runtime Assumptions
 
 `{sovereign}` is a local-first desktop product.
@@ -20,7 +27,8 @@ GitHub is not required to run the local product.
 
 Implemented now:
 
-- local app and worker launch
+- local app and Nexus Bridge launch
+- External Vanguard (Discord) integration
 - macOS app bundle install
 - managed local services
 - unified chat with live agent visibility
@@ -41,21 +49,21 @@ Use this when developing or debugging the product directly.
 #### Start the database
 
 ```bash
-cd /Users/moldovancsaba/Projects/sovereign
+cd <repo>
 npm run db:up
 ```
 
 #### Prepare environment
 
 ```bash
-cd /Users/moldovancsaba/Projects/sovereign/apps/sovereign
+cd <repo>/apps/sovereign
 cp .env.example .env
 ```
 
 #### Install and generate Prisma client
 
 ```bash
-cd /Users/moldovancsaba/Projects/sovereign
+cd <repo>
 npm run install:app
 npm run prisma:generate
 ```
@@ -69,30 +77,39 @@ npm run prisma:generate
 #### Start the app
 
 ```bash
-cd /Users/moldovancsaba/Projects/sovereign
+cd <repo>
 npm run dev
 ```
 
-#### Start the worker
-
+#### Activate the Nexus Bridge
+ 
 In a second terminal:
-
+ 
 ```bash
-cd /Users/moldovancsaba/Projects/sovereign
-npm run worker
+cd <repo>
+npm run nexus:bridge
+```
+ 
+#### Deploy the External Vanguard
+ 
+In a third terminal:
+ 
+```bash
+cd <repo>
+npm run vanguard:run
 ```
 
-Open:
+Open (use **`localhost`** so the host matches **`NEXTAUTH_URL`** in `.env.example`):
 
-- [http://127.0.0.1:3007/dashboard](http://127.0.0.1:3007/dashboard)
-- [http://127.0.0.1:3007/chat](http://127.0.0.1:3007/chat)
+- [http://localhost:3007/dashboard](http://localhost:3007/dashboard)
+- [http://localhost:3007/chat](http://localhost:3007/chat)
 
 ### 2. Managed local service path
 
-Use this when you want the local app, worker, and Ollama integration managed by launchd.
+Use this when you want the local app, Nexus Bridge, and Ollama integration managed by launchd.
 
 ```bash
-cd /Users/moldovancsaba/Projects/sovereign
+cd <repo>
 npm run service:install
 npm run service:status
 ```
@@ -102,10 +119,12 @@ npm run service:status
 Use this for the product-style local launch experience.
 
 ```bash
-cd /Users/moldovancsaba/Projects/sovereign
+cd <repo>
 npm run desktop:install-app
-open /Users/moldovancsaba/Applications/Sovereign.app
+open ~/Applications/Sovereign.app
 ```
+
+If the installer placed the app under `/Applications`, use `open /Applications/Sovereign.app` instead.
 
 ## Theia Desktop Path
 
@@ -114,7 +133,7 @@ Theia is the target shell foundation, not the current default end-user shell.
 Bootstrap path:
 
 ```bash
-cd /Users/moldovancsaba/Projects/sovereign
+cd <repo>
 npm run desktop:bootstrap
 npm run desktop:build
 npm run desktop:start
@@ -132,9 +151,9 @@ npm run verify
 
 Minimum successful local validation:
 
-- database reachable on `127.0.0.1:34765`
-- app reachable on `127.0.0.1:3007`
-- fresh `@Controller` task completes in chat
+- database reachable on `127.0.0.1:34765` (or `localhost:34765`)
+- app reachable on **`http://localhost:3007`**
+- fresh intent ingested via Discord Vanguard completes in chat
 - dashboard shows local service and runtime health without requiring GitHub
 
 ## Troubleshooting
@@ -149,22 +168,22 @@ Symptoms:
 Fix:
 
 ```bash
-cd /Users/moldovancsaba/Projects/sovereign
+cd <repo>
 npm run db:up
 ```
 
-### Worker is alive but tasks fail immediately
+### Nexus Bridge is alive but tasks fail immediately
 
 Check:
 
 - local provider health
 - installed Ollama models
-- worker log output
+- Nexus Bridge log output
 
 The runtime layer should resolve an installed model instead of failing on a missing preferred alias, but if startup is broken, inspect:
 
-- `apps/sovereign/.sovereign/daemon-logs/worker.out.log` (or legacy `.sentinelsquad/` if not migrated)
-- `apps/sovereign/.sovereign/daemon-logs/worker.err.log`
+- `apps/sovereign/.sovereign/daemon-logs/nexus-bridge.out.log` (or legacy `.sentinelsquad/` if not migrated)
+- `apps/sovereign/.sovereign/daemon-logs/nexus-bridge.err.log`
 
 ### Dashboard still shows GitHub-related messaging
 
@@ -172,6 +191,6 @@ That is a documentation or UI bug, not an intended operating requirement. `{sove
 
 ## Related Documents
 
-- [`/Users/moldovancsaba/Projects/sovereign/docs/SETUP.md`](/Users/moldovancsaba/Projects/sovereign/docs/SETUP.md)
-- [`/Users/moldovancsaba/Projects/sovereign/docs/architecture/0001-theia-desktop-foundation.md`](/Users/moldovancsaba/Projects/sovereign/docs/architecture/0001-theia-desktop-foundation.md)
-- [`/Users/moldovancsaba/Projects/sovereign/docs/architecture/0002-rock-solid-open-source-hardening.md`](/Users/moldovancsaba/Projects/sovereign/docs/architecture/0002-rock-solid-open-source-hardening.md)
+- [`docs/BUILD_AND_RUN.md`](BUILD_AND_RUN.md) — The 3-command bootstrap missions
+- [`docs/SOVEREIGN_GEMINI_INITIATIVE.md`](SOVEREIGN_GEMINI_INITIATIVE.md) — The joint vision
+- [architecture/0002-rock-solid-open-source-hardening.md](architecture/0002-rock-solid-open-source-hardening.md)

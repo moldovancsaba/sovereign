@@ -88,6 +88,25 @@ ensure_env_line "SOVEREIGN_TOOL_APPROVAL_SECRET" "$TOOL_APPROVAL_SECRET_VALUE"
 ensure_env_line "SOVEREIGN_DEV_LOGIN_EMAIL" "dev@sovereign.local"
 ensure_env_line "SOVEREIGN_DEV_LOGIN_PASSWORD" "sovereign-local-dev"
 
+# docker-compose.yml uses POSTGRES_USER/PASSWORD/DB sovereign. Legacy clones still have sentinelsquad in DATABASE_URL;
+# ensure_env_line skips updates when any non-empty value exists — repair explicitly.
+if grep -q "^DATABASE_URL=" "$ENV_FILE" 2>/dev/null && grep "^DATABASE_URL=" "$ENV_FILE" | tail -1 | grep -qi sentinelsquad; then
+  echo "[sovereign] Updating DATABASE_URL: docker-compose Postgres is user/db sovereign (not sentinelsquad)."
+  python3 - "$ENV_FILE" "postgresql://sovereign:sovereign@localhost:${DB_PORT}/sovereign?schema=public" <<'PY'
+import sys
+path, url = sys.argv[1:3]
+out = []
+with open(path, "r", encoding="utf-8") as fh:
+    for line in fh:
+        if line.startswith("DATABASE_URL="):
+            out.append("DATABASE_URL=" + url + "\n")
+        else:
+            out.append(line)
+with open(path, "w", encoding="utf-8") as fh:
+    fh.writelines(out)
+PY
+fi
+
 if ! wait_for_port "$DB_PORT" 1 0; then
   if [[ -n "$DOCKER_BIN" && -x "$DOCKER_BIN" ]] && "$DOCKER_BIN" info >/dev/null 2>&1; then
     "$DOCKER_BIN" compose -f "$REPO_ROOT/docker-compose.yml" up -d sovereign-db

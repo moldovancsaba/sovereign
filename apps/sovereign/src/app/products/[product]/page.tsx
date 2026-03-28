@@ -5,7 +5,7 @@ import {
   deleteProjectConfigAction,
   saveProjectConfigAction
 } from "@/app/products/actions";
-import { listProjectItems } from "@/lib/github";
+import { isGithubGraphqlConfigured, listProjectItems } from "@/lib/github";
 import { readSovereignSettings } from "@/lib/settings-store";
 import { requireSession } from "@/lib/session";
 
@@ -23,8 +23,9 @@ export default async function ProductPage(props: {
 
   const { product } = await props.params;
   const decoded = decodeURIComponent(product);
+  const githubReady = isGithubGraphqlConfigured();
   const [items, settings] = await Promise.all([
-    listProjectItems({ product: decoded, limit: 200 }),
+    githubReady ? listProjectItems({ product: decoded, limit: 200 }) : Promise.resolve([]),
     readSovereignSettings()
   ]);
   const config =
@@ -36,7 +37,15 @@ export default async function ProductPage(props: {
       title={`Product: ${decoded}`}
       subtitle={`Cards from the board filtered by Product = ${decoded}`}
     >
-      <div className="mb-6 rounded-2xl border border-white/12 bg-white/5 p-5">
+      {!githubReady ? (
+        <div className="mb-6 rounded-xl border border-amber-300/25 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">
+          GitHub token not set — board cards are hidden. Add{" "}
+          <code className="text-xs text-amber-100/90">SOVEREIGN_GITHUB_TOKEN</code> (or{" "}
+          <code className="text-xs text-amber-100/90">GITHUB_TOKEN</code>) to{" "}
+          <code className="text-xs">apps/sovereign/.env</code> and restart.
+        </div>
+      ) : null}
+      <div className="mb-6 ds-card p-5">
         <div className="text-sm font-semibold">Project settings</div>
         <div className="mt-1 text-xs text-white/60">
           Manage metadata for this product. API keys should remain in env files.
@@ -99,7 +108,7 @@ export default async function ProductPage(props: {
         ) : null}
       </div>
 
-      <div className="rounded-2xl border border-white/12 bg-white/5">
+      <div className="ds-card">
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div className="text-sm text-white/70">
             {items.length} cards (showing up to 200)

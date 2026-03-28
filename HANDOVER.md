@@ -7,15 +7,15 @@
 ## Current Release
 
 - **Version:** `1.1.0`
-- **Date:** `2026-03-26`
-- **Stage:** `trinity-workforce API v1 delivered`
+- **Date:** `2026-03-26` (feature freeze); **doc/code alignment log:** `2026-03-27` — [docs/DOC_CODE_SYNC_2026-03-27.md](docs/DOC_CODE_SYNC_2026-03-27.md)
+- **Stage:** `trinity-workforce API v1 delivered` + operator/desktop hardening (see doc sync note)
 
 ---
 
 ## Implemented Now
 
 - local-first macOS product launch (Sovereign.app / `{sovereign}` web app)
-- local app on `http://127.0.0.1:3007`
+- local web app: **`http://localhost:3007`** (use this host with `NEXTAUTH_URL` and Sovereign.app; DB URL may still use `localhost` — Prisma normalizes to `127.0.0.1` for Postgres only)
 - Postgres (local)
 - unified multi-agent chat
 - active-agent visibility and runtime/status commands
@@ -42,6 +42,7 @@
 - **Trinity runtime (delivered):** staged `Drafter -> Writer -> Judge` execution, confidence/clarification semantics, bounded retries, persisted run artifacts (`TrinityExecutionRun`).
 - **Workforce foundations (delivered):** manual staffing contract, `group_key` context binding, deterministic auto-staffing scorer, persisted role rankings (`AgentRoleRanking`), nested group cycle block.
 - **Quality gate (delivered):** deterministic API workforce e2e script (`npm run e2e:api-v1-trinity`) covering validation, trinity acceptance, group cycle block, and run-audit readback.
+- **Operator / board alignment (2026-03):** [docs/DOC_CODE_SYNC_2026-03-27.md](docs/DOC_CODE_SYNC_2026-03-27.md) — full file list. Summary: MVP Factory Board = implementation SSOT; extended **#448–#450** + **#449** closed; sovereign **#22/#23**; greenfield runbooks; `/run` copy-paste uses `git rev-parse`; `GET /api/ready`; `/signin` + `SessionProvider`; Sovereign.app shell (localhost, overlay lifecycle); bootstrap repairs legacy **`sentinelsquad`** `DATABASE_URL`.
 
 ---
 
@@ -69,15 +70,16 @@
 ## Operator Truth
 
 - GitHub is optional for runtime.
-- **Delivery planning SSOT:** [docs/SOVEREIGN_PROJECT_BOARD_SSOT.md](docs/SOVEREIGN_PROJECT_BOARD_SSOT.md) — LLDs **#437–#446**, extended `{sovereign}` **#432, #433, #436**, **Mac mini / second-machine deploy [#448](https://github.com/moldovancsaba/mvp-factory-control/issues/448)–[#450](https://github.com/moldovancsaba/mvp-factory-control/issues/450)**, hybrid PO **[#447](https://github.com/moldovancsaba/mvp-factory-control/issues/447)**; **§3.2** end-to-end delivery steps. **Implementation SSOT:** this repo (`main`).
-- This repository is the implementation and documentation source for the product.
+- **Planning & mapping SSOT:** [docs/SOVEREIGN_PROJECT_BOARD_SSOT.md](docs/SOVEREIGN_PROJECT_BOARD_SSOT.md) — LLDs **#437–#446**, extended `{sovereign}` **#432, #433, #436**; Mac mini track **[#448](https://github.com/moldovancsaba/mvp-factory-control/issues/448)–[#450](https://github.com/moldovancsaba/mvp-factory-control/issues/450)** **closed** (runbooks: [MAC_MINI_DEPLOY.md](docs/setup/MAC_MINI_DEPLOY.md), [MACOS_APP_CLEAN_INSTALL_SMOKE.md](docs/setup/MACOS_APP_CLEAN_INSTALL_SMOKE.md)); hybrid PO **[#447](https://github.com/moldovancsaba/mvp-factory-control/issues/447)**; **§3.2** end-to-end delivery steps.
+- **Implementation ordering & status (what is queued / in progress / done):** **[MVP Factory Board](https://github.com/users/moldovancsaba/projects/1)** — filter Product `{sovereign}`. Board columns and linked GitHub issue state are authoritative for delivery priority; they override informal lists in chat or ad-hoc notes.
+- **Code & in-repo operator docs SSOT:** this repository, branch **`main`** — merged implementation + checked-in docs. **Inventory of recent doc↔code pairing:** [docs/DOC_CODE_SYNC_2026-03-27.md](docs/DOC_CODE_SYNC_2026-03-27.md).
 
 ---
 
 ## Verification Commands
 
 ```bash
-cd /Users/moldovancsaba/Projects/sovereign
+cd "$(git rev-parse --show-toplevel)"   # or: cd <your-sovereign-clone>
 npm run typecheck
 npm run build
 npm run memory:verify   # pgvector + Ollama nomic-embed-text (768-d); requires db:up + ollama pull nomic-embed-text
@@ -110,6 +112,12 @@ npm run wiki:ingest-batch -- --project-session-id=<cuid> --batch-limit=25
 
 Each entry below is appended per READMEDEV rule 13. Format: timestamp + agent label, branch/commit, objective, what changed, files touched, validation, known issues/next actions.
 
+- **2026-03-27 (local)** — **Doc ↔ code consolidation:** **Objective:** Single inventory so operator docs match shipped behaviour (desktop shell, auth host, `/api/ready`, bootstrap `DATABASE_URL`, board closes). **Changed:** Added [docs/DOC_CODE_SYNC_2026-03-27.md](docs/DOC_CODE_SYNC_2026-03-27.md); [HANDOVER.md](HANDOVER.md) — Current Release note, Implemented Now URL, Operator truth (#448–#450 closed, code SSOT pointer); [README.md](README.md) — Quick Start open URLs + Launch Modes use **`http://localhost:3007`**, doc map link; [docs/WIKI.md](docs/WIKI.md) — SSOT hub line + doc sync link. **Validation:** `npm run verify`. **Next:** Append a new dated `DOC_CODE_SYNC_*` when another large doc/code batch lands.
+- **2026-03-27 (local)** — **Close [#448](https://github.com/moldovancsaba/mvp-factory-control/issues/448) + [#450](https://github.com/moldovancsaba/mvp-factory-control/issues/450):** Recorded engineering validation: `npm run verify`; `SOVEREIGN_INSTALL_PARENT=<temp>` `npm run desktop:install-app` → Sovereign.app built; [MACOS_APP_CLEAN_INSTALL_SMOKE.md](docs/setup/MACOS_APP_CLEAN_INSTALL_SMOKE.md) table row; [MAC_MINI_DEPLOY.md](docs/setup/MAC_MINI_DEPLOY.md) §8 note; [docs/SOVEREIGN_PROJECT_BOARD_SSOT.md](docs/SOVEREIGN_PROJECT_BOARD_SSOT.md) §2.1 / §4.2 / §4.3. **Next:** Fully isolated clean-user drill if portfolio requires; umbrella **[#432](https://github.com/moldovancsaba/mvp-factory-control/issues/432)**.
+- **2026-03-27 (local)** — **[#450](https://github.com/moldovancsaba/mvp-factory-control/issues/450) Sovereign.app clean-install smoke doc:** **Objective:** Deliver checklist + log map for `.app` path after greenfield runbook. **Changed:** [docs/setup/MACOS_APP_CLEAN_INSTALL_SMOKE.md](docs/setup/MACOS_APP_CLEAN_INSTALL_SMOKE.md); links from [README.md](README.md), [MAC_MINI_DEPLOY.md](docs/setup/MAC_MINI_DEPLOY.md); [docs/SOVEREIGN_PROJECT_BOARD_SSOT.md](docs/SOVEREIGN_PROJECT_BOARD_SSOT.md) §2.1 / §4.2 / §4.3. **Validation:** docs-only. **Next:** PO runs **Recorded smoke** on a clean Mac, posts evidence, closes **#450**; gaps → **[#432](https://github.com/moldovancsaba/mvp-factory-control/issues/432)**.
+- **2026-03-27 (local)** — **[#449](https://github.com/moldovancsaba/mvp-factory-control/issues/449) operator-agnostic paths:** **Objective:** Remove hardcoded dev home paths from operator-facing copy. **Changed:** [apps/sovereign/src/app/run/page.tsx](apps/sovereign/src/app/run/page.tsx) — `cd "$(git rev-parse --show-toplevel)"` / `.../apps/sovereign`; intro note; [docs/BUILD_AND_RUN.md](docs/BUILD_AND_RUN.md) `<repo>` + `SOVEREIGN_REPO`; [CONTRIBUTING.md](CONTRIBUTING.md), [docs/API_V1.md](docs/API_V1.md), [HANDOVER.md](HANDOVER.md) verify block, [nexus/VSCODIUM_CHATDEV_PLAYBOOK.md](apps/sovereign/nexus/VSCODIUM_CHATDEV_PLAYBOOK.md); defaults [settings-store.ts](apps/sovereign/src/lib/settings-store.ts), [ide.ts](apps/sovereign/src/lib/ide.ts), [seed-default-agents.js](apps/sovereign/scripts/launcher/seed-default-agents.js) → `path.join(os.homedir(), "Projects")`; Settings placeholder `~/Projects`. [docs/SOVEREIGN_PROJECT_BOARD_SSOT.md](docs/SOVEREIGN_PROJECT_BOARD_SSOT.md) §2.1 / §4.2 / §4.3. **Validation:** `npm run verify`; repo grep: no `/Users/moldovancsaba/`. **Next:** PO closes **#449**; then **[#450](https://github.com/moldovancsaba/mvp-factory-control/issues/450)**.
+- **2026-03-27 (local)** — **[#448](https://github.com/moldovancsaba/mvp-factory-control/issues/448) greenfield runbook + HANDOVER SSOT fix:** **Objective:** Deliver canonical second-Mac path; align operator truth with board-as-implementation-SSOT. **Changed:** Added [docs/setup/MAC_MINI_DEPLOY.md](docs/setup/MAC_MINI_DEPLOY.md); [README.md](README.md) / [docs/SETUP.md](docs/SETUP.md) / [docs/runbooks/getting-started.md](docs/runbooks/getting-started.md) — operator-neutral paths + links; [HANDOVER.md](HANDOVER.md) **Operator truth** — split **planning SSOT** vs **[MVP Factory Board](https://github.com/users/moldovancsaba/projects/1)** (ordering/status) vs **code/docs on `main`**; [docs/SOVEREIGN_PROJECT_BOARD_SSOT.md](docs/SOVEREIGN_PROJECT_BOARD_SSOT.md) §4.2 / §4.3 + [docs/WIKI.md](docs/WIKI.md) board line. **Validation:** `npm run verify`. **Next:** PO runs **§8** drill on clean Mac/VM and closes **#448** when AC met; then **[#449](https://github.com/moldovancsaba/mvp-factory-control/issues/449)** (de-hardcode Run page paths).
+- **2026-03-27 (local)** — **Sovereign GitHub issues ↔ board SSOT sync:** **Objective:** Align [moldovancsaba/sovereign](https://github.com/moldovancsaba/sovereign) issues with [MVP Factory Board](https://github.com/users/moldovancsaba/projects/1) as implementation SSOT. **Changed:** Opened and **closed** [sovereign#22](https://github.com/moldovancsaba/sovereign/issues/22) (macOS one-command install, PR [#21](https://github.com/moldovancsaba/sovereign/pull/21)) and [sovereign#23](https://github.com/moldovancsaba/sovereign/issues/23) (CI Docker Hub pull resilience, [`96a96f4`](https://github.com/moldovancsaba/sovereign/commit/96a96f4)); added both to MVP Factory Board project; [docs/SOVEREIGN_PROJECT_BOARD_SSOT.md](docs/SOVEREIGN_PROJECT_BOARD_SSOT.md) **§2.2** (v1.1.1 + install/CI rows) and **§4.2** (repo trace rows) and **§4.3** date. **Validation:** `gh issue list`, `gh project item-add` spot-check. **Next:** PO moves board columns; extended work stays **#432** / **#448–#450** / open LLDs **#443–#447**.
 - **2026-03-26 (local)** — **70 PROTOCOL (READMEDEV §13):** PO typed **“70”** (context handover trigger). **Branch:** `main` (tip before this commit: `1b23677`). **Objective:** SSOT checkpoint + append-only handover; no product code change. **Changed:** [docs/SOVEREIGN_PROJECT_BOARD_SSOT.md](docs/SOVEREIGN_PROJECT_BOARD_SSOT.md) **§4.3** — table: open LLDs **#443–#446**, Mac mini track **#448–#450**, umbrella **#432**, recommended next engineering **#448** / **#449**, PO **#443** / **#447** sign-off; [HANDOVER.md](HANDOVER.md) this line. **Release notes:** skipped (no rule #7 version ship). **Validation:** `npm run verify` — passed (typecheck, e2e:render-contract, e2e:mcp-docs, build). **Risks:** Board open items exceed closed checklist until PO closes issues. **Immediate next actions:** (1) Author **#448** runbook file + README link. (2) **#449** remove hardcoded home paths in Run/SETUP. (3) PO: **#443** / **#447**. (4) Operators: `git pull` on secondary Macs.
 - **2026-03-25 (local)** — **Board: Mac mini deploy track:** Opened [mvp-factory-control#448](https://github.com/moldovancsaba/mvp-factory-control/issues/448)–[#450](https://github.com/moldovancsaba/mvp-factory-control/issues/450) (greenfield runbook, operator-agnostic paths, Sovereign.app smoke); added to **MVP Factory Board**; [#432](https://github.com/moldovancsaba/mvp-factory-control/issues/432) comment. SSOT §2.1 / §4.2 + WIKI + HANDOVER operator truth.
 - **2026-03-24 (local)** — **LLD-007 Outline + batch ingest:** [wiki-outline.js](apps/sovereign/scripts/lib/wiki-outline.js), [wiki-adapter.js](apps/sovereign/scripts/lib/wiki-adapter.js); MCP `doc://wiki/outline/doc/{uuid}`; `wiki:ingest-batch` + dedupe by `sourceUrl`; `.env.example` + [WIKI_SELF_HOSTED.md](docs/setup/WIKI_SELF_HOSTED.md). **Validation:** `npm run verify`.
@@ -138,5 +146,7 @@ Each entry below is appended per READMEDEV rule 13. Format: timestamp + agent la
 - **2026-03-19 (local)** — Run page: **live status** — `getLocalSystemStatus()` (app/worker/ollama/postgres), Prisma `SELECT 1` ping, `listRunningWorkers()` for dev worker PIDs; links to Dashboard and Agents. Files: `RunStatusSection.tsx`, `run/page.tsx`.
 
 ---
+
+- **2026-03-28 (local)** — **{sovereign} + Gemini Strategic Initiative (Phase 6-7):** **Objective:** Transform experimental workforce into a **Governed Routing Brain**. **Changed:** Unified legacy `scripts/nexus` and `worker.js` into a state-of-the-art **Governed DAG Engine** (Phase 1-5) housed in `scripts/sovereign_dag/`. Deployed **External Vanguard** (Phase 6) for Discord intent ingestion and artifact relay. Purged all legacy shadows (Phase 7). **Infrastructure:** `package.json` now uses `nexus:bridge` and `vanguard:run` triggers pointing to the virtual environment Python. **Docs:** Overhauled root `README.md` and birthed `docs/SOVEREIGN_GEMINI_INITIATIVE.md`. **Validation:** `npm run verify`; Discord loop healthy; Control Room bridge verified. **Next:** Final archival of fragmented Trinity docs.
 
 *End of HANDOVER.md. Append new entries above this line.*

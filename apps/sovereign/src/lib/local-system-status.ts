@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 
 export type LocalServiceStatus = {
-  key: "app" | "worker" | "ollama" | "postgres";
+  key: "app" | "nexus-bridge" | "vanguard" | "ollama" | "postgres";
   label: string;
   status: "HEALTHY" | "DEGRADED" | "UNAVAILABLE";
   detail: string;
@@ -38,7 +38,8 @@ export function getLocalSystemStatus(): LocalServiceStatus[] {
   const appListening = portListening(3007);
   const postgresListening = portListening(34765);
   const ollamaListening = portListening(11434);
-  const workerLoaded = launchAgentAnyLoaded(["com.sovereign.worker"]);
+  const bridgeLoaded = launchAgentAnyLoaded(["com.sovereign.nexus-bridge"]);
+  const vanguardLoaded = launchAgentAnyLoaded(["com.sovereign.vanguard"]);
   const ollamaLoaded = launchAgentAnyLoaded(["com.sovereign.ollama"]);
   const appLoaded = launchAgentAnyLoaded(["com.sovereign.app"]);
 
@@ -54,12 +55,20 @@ export function getLocalSystemStatus(): LocalServiceStatus[] {
         : "App service is not loaded."
     },
     {
-      key: "worker",
-      label: "Worker",
-      status: workerLoaded ? "HEALTHY" : "UNAVAILABLE",
-      detail: workerLoaded
-        ? "Managed worker LaunchAgent is loaded."
-        : "Worker LaunchAgent is not loaded."
+      key: "nexus-bridge",
+      label: "Nexus Bridge",
+      status: bridgeLoaded ? "HEALTHY" : "UNAVAILABLE",
+      detail: bridgeLoaded
+        ? "Managed Nexus Bridge (DAG Engine) is loaded."
+        : "Nexus Bridge LaunchAgent is not loaded."
+    },
+    {
+      key: "vanguard",
+      label: "Discord Vanguard",
+      status: vanguardLoaded ? "HEALTHY" : "UNAVAILABLE",
+      detail: vanguardLoaded
+        ? "Managed Discord Vanguard (Sentinel) is loaded."
+        : "Vanguard LaunchAgent is not loaded."
     },
     {
       key: "ollama",

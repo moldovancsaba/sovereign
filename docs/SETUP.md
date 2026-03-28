@@ -40,29 +40,29 @@ Optional:
 
 ## Local Paths
 
-- repo root: `/Users/moldovancsaba/Projects/sovereign`
-- app: `/Users/moldovancsaba/Projects/sovereign/apps/sovereign`
+- repo root: your clone directory (see [setup/MAC_MINI_DEPLOY.md](setup/MAC_MINI_DEPLOY.md) for greenfield / second Mac)
+- app: `<repo root>/apps/sovereign`
 
 ## First-Time Local Setup
 
 ### 1. Start Postgres
 
 ```bash
-cd /Users/moldovancsaba/Projects/sovereign
+cd <your-sovereign-clone>
 npm run db:up
 ```
 
 ### 2. Create local env
 
 ```bash
-cd /Users/moldovancsaba/Projects/sovereign/apps/sovereign
+cd <your-sovereign-clone>/apps/sovereign
 cp .env.example .env
 ```
 
 ### 3. Install dependencies
 
 ```bash
-cd /Users/moldovancsaba/Projects/sovereign
+cd <your-sovereign-clone>
 npm run install:app
 npm run prisma:generate
 ```
@@ -72,14 +72,14 @@ npm run prisma:generate
 **Local dev (interactive, creates migration files if schema drift):**
 
 ```bash
-cd /Users/moldovancsaba/Projects/sovereign/apps/sovereign
+cd <your-sovereign-clone>/apps/sovereign
 npx prisma migrate dev
 ```
 
 **Any environment with an existing Postgres URL** (staging, teammate laptop, shell in Docker): use **deploy** (idempotent, no prompts):
 
 ```bash
-cd /Users/moldovancsaba/Projects/sovereign
+cd <your-sovereign-clone>
 npm run db:up   # optional: only if you use compose for Postgres
 npm run prisma:migrate:deploy
 ```
@@ -89,6 +89,8 @@ npm run prisma:migrate:deploy
 **Docker stack** (app + DB): `./scripts/sovereign-docker-bootstrap.sh` already runs `prisma migrate deploy` inside the app container after the DB is healthy.
 
 **CI / Docker Hub:** GitHub Actions portability jobs pull `pgvector/pgvector:pg16` from Docker Hub. If pulls fail with `unauthorized` or rate limits, the workflow clears cached `docker.io` logins and retries. Repository maintainers may add optional secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` for authenticated pulls.
+
+**Legacy `DATABASE_URL`:** If Prisma reports invalid credentials for user **`sentinelsquad`**, your `.env` predates the rename. `docker-compose.yml` creates **`sovereign` / `sovereign`** and database **`sovereign`**. Set `DATABASE_URL` to match [`.env.example`](../apps/sovereign/.env.example), or re-run `apps/sovereign/scripts/launcher/bootstrap-local-dev.sh` (it rewrites `sentinelsquad` URLs automatically).
 
 ### 5. Ensure Ollama is available
 
@@ -109,7 +111,7 @@ ollama pull nomic-embed-text
 Then verify DB + Ollama together:
 
 ```bash
-cd /Users/moldovancsaba/Projects/sovereign
+cd <your-sovereign-clone>
 npm run memory:verify
 ```
 

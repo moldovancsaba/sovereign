@@ -19,7 +19,7 @@ export function CopyCommandButton({ text }: { text: string }) {
     <button
       type="button"
       onClick={handleCopy}
-      className="absolute right-2 top-2 rounded-lg border border-white/15 bg-white/10 px-2 py-1 text-xs font-medium text-white/90 hover:bg-white/15"
+      className="ds-btn-secondary ds-btn-compact absolute right-2 top-2 font-medium"
     >
       {copied ? "Copied" : "Copy"}
     </button>
