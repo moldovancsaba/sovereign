@@ -82,3 +82,5 @@ These services are self-healing: they stay alive across system reboots and autom
 
 ---
 *Developed under the {sovereign} + Gemini Strategic Initiative.*
+
+[Project board review and manual movement journal](docs/PROJECT_BOARD_MOVEMENT_LOG.md).
